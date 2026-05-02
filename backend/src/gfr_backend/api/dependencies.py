@@ -7,7 +7,7 @@ from gfr_backend.services.llm import LLMService, StubLLMService
 from gfr_backend.services.retriever import RetrieverService, StubRetrieverService
 
 
-def get_db_session() -> Generator[Session, None, None]:
+def get_db_session() -> Generator[Session]:
     session = SessionLocal()
     try:
         yield session
