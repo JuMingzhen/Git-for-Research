@@ -421,3 +421,59 @@ Behavior notes:
   - `task_split_status = "failed"`
   - `task_split_error` explains the reason
   - `tasks` remains empty
+
+## QA Endpoints
+
+### `POST /qa/ask`
+
+- Purpose: answer a question from project-local meeting history and progress history
+- Retrieval strategy:
+  - intentionally simple and deterministic for now
+  - searches current project meetings and updates only
+  - no vector database is used yet
+
+Request body:
+
+```json
+{
+  "project_id": 1,
+  "question": "What should Student A finish before next week?"
+}
+```
+
+Response `200` when history is found:
+
+```json
+{
+  "answer": "Based on project history: Student A should finish the retrieval ablation before next week.",
+  "status": "answered",
+  "citations": [
+    {
+      "source_type": "meeting",
+      "source_id": 1,
+      "snippet": "Student A should finish the retrieval ablation before next week."
+    }
+  ]
+}
+```
+
+Response `200` when history is insufficient:
+
+```json
+{
+  "answer": "Insufficient information in project history.",
+  "status": "insufficient_information",
+  "citations": []
+}
+```
+
+Behavior rules:
+
+- Answers must always come from project-local retrieved history
+- Returned answers always include citation sources when `status = "answered"`
+- If retrieval does not find enough evidence, the system returns `insufficient_information`
+- The system should not fabricate unsupported answers
+
+Common errors:
+
+- `404` when `project_id` does not exist

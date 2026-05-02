@@ -15,6 +15,7 @@ from gfr_backend.api.dependencies import (
 from gfr_backend.db.base import Base
 from gfr_backend.db.models import Team, User, UserRole
 from gfr_backend.main import create_app
+from gfr_backend.services.retriever import StubRetrieverService
 
 TEST_DB_URL = "sqlite:///./test_step1.db"
 
@@ -81,7 +82,7 @@ class FakeLLMService:
         return tasks
 
 
-class FakeRetrieverService:
+class FakeRetrieverService(StubRetrieverService):
     @property
     def name(self) -> str:
         return "fake-retriever"
