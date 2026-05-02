@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from gfr_backend.db.base import Base
 
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     advisor = "advisor"
     student = "student"
 

@@ -1,9 +1,12 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
 
 backend/.venv/
 backend/.tmp/
 backend/.pytest_cache/
+backend/.ruff_cache/
 
+backend/gfr.db
 backend/test_step1.db

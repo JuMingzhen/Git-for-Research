@@ -49,7 +49,10 @@ def test_create_progress_update_returns_ai_fields(client, seeded_users) -> None:
     body = response.json()
     assert body["branch_id"] == branch["id"]
     assert body["ai_status"] == "completed"
-    assert body["ai_summary"] == "Summary for Student A Branch: Finished the first retrieval prototype."
+    assert (
+        body["ai_summary"]
+        == "Summary for Student A Branch: Finished the first retrieval prototype."
+    )
     assert body["ai_suggested_subbranches"] == [
         "Student A Branch - experiment follow-up",
         "Student A Branch - analysis follow-up",
@@ -104,7 +107,10 @@ def test_reject_update_from_non_owner(client, seeded_users) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json()["error"]["message"] == "Only the branch owner can submit progress updates."
+    assert (
+        response.json()["error"]["message"]
+        == "Only the branch owner can submit progress updates."
+    )
 
 
 class BrokenLLMService:

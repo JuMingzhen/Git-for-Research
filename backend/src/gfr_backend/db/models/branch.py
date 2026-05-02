@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from gfr_backend.db.base import Base
 
 
-class BranchType(str, enum.Enum):
+class BranchType(enum.StrEnum):
     main = "main"
     personal = "personal"
     sub = "sub"

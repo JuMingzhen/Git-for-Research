@@ -4,7 +4,7 @@ from collections.abc import Generator
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from gfr_backend.api.dependencies import (
@@ -44,6 +44,42 @@ class FakeLLMService:
             f"{branch_context['title']} - analysis follow-up",
         ]
 
+    def build_pre_meeting_brief(
+        self,
+        *,
+        project_context: dict[str, str | int | None],
+        recent_updates: list[dict[str, str | int | None]],
+    ) -> str:
+        return f"Briefing for {project_context['title']}: {len(recent_updates)} updates"
+
+    def summarize_meeting(
+        self,
+        *,
+        raw_notes: str,
+        project_context: dict[str, str | int | None],
+    ) -> str:
+        return f"Meeting summary for {project_context['title']}: {raw_notes}"
+
+    def extract_meeting_tasks(
+        self,
+        *,
+        meeting_summary: str,
+        participants: list[dict[str, str | int | None]],
+    ) -> list[dict[str, str | int | None]]:
+        tasks: list[dict[str, str | int | None]] = []
+        for participant in participants:
+            if participant["branch_type"] != "personal":
+                continue
+            tasks.append(
+                {
+                    "assignee_id": participant["owner_id"],
+                    "branch_id": participant["branch_id"],
+                    "description": f"Task for {participant['title']}: {meeting_summary}",
+                    "due_hint": "before next meeting",
+                }
+            )
+        return tasks
+
 
 class FakeRetrieverService:
     @property
@@ -75,7 +111,7 @@ def db_session_factory(test_engine):
 def app(db_session_factory) -> FastAPI:
     app = create_app()
 
-    def override_db_session() -> Generator[Session, None, None]:
+    def override_db_session() -> Generator[Session]:
         session = db_session_factory()
         try:
             yield session
@@ -89,13 +125,13 @@ def app(db_session_factory) -> FastAPI:
 
 
 @pytest.fixture()
-def client(app: FastAPI) -> Generator[TestClient, None, None]:
+def client(app: FastAPI) -> Generator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
 
 
 @pytest.fixture()
-def raw_session(db_session_factory) -> Generator[Session, None, None]:
+def raw_session(db_session_factory) -> Generator[Session]:
     session = db_session_factory()
     try:
         yield session

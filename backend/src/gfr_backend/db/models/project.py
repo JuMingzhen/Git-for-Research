@@ -23,6 +23,7 @@ class Project(Base):
         back_populates="project",
         foreign_keys="ResearchBranch.project_id",
     )
+    meetings = relationship("Meeting", back_populates="project")
     main_branch = relationship(
         "ResearchBranch",
         foreign_keys=[main_branch_id],
