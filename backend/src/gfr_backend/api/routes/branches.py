@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 
 from gfr_backend.api.dependencies import get_db_session
 from gfr_backend.schemas.branches import BranchDetail, CreateBranchRequest
+from gfr_backend.schemas.updates import UpdateResponse
 from gfr_backend.services.branches import create_branch, get_branch_or_404
+from gfr_backend.services.updates import list_recent_updates_for_branch
 
 router = APIRouter(prefix="/branches", tags=["branches"])
 
@@ -48,3 +50,12 @@ def get_branch_route(
 ) -> BranchDetail:
     branch = get_branch_or_404(db, branch_id)
     return _build_branch_response(branch)
+
+
+@router.get("/{branch_id}/updates", response_model=list[UpdateResponse])
+def list_branch_updates_route(
+    branch_id: int,
+    db: Session = Depends(get_db_session),
+) -> list[UpdateResponse]:
+    updates = list_recent_updates_for_branch(db, branch_id)
+    return [UpdateResponse.model_validate(update) for update in updates]

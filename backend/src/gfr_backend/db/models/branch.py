@@ -45,3 +45,4 @@ class ResearchBranch(Base):
         back_populates="child_branches",
     )
     child_branches = relationship("ResearchBranch", back_populates="parent_branch")
+    updates = relationship("ProgressUpdate", back_populates="branch")

@@ -24,6 +24,26 @@ class FakeLLMService:
     def name(self) -> str:
         return "fake-llm"
 
+    def summarize_progress(
+        self,
+        *,
+        updates: list[dict[str, str | None]],
+        branch_context: dict[str, str | int | None],
+    ) -> str:
+        latest = updates[-1]
+        return f"Summary for {branch_context['title']}: {latest['content']}"
+
+    def suggest_subbranches(
+        self,
+        *,
+        update_text: str,
+        branch_context: dict[str, str | int | None],
+    ) -> list[str]:
+        return [
+            f"{branch_context['title']} - experiment follow-up",
+            f"{branch_context['title']} - analysis follow-up",
+        ]
+
 
 class FakeRetrieverService:
     @property
