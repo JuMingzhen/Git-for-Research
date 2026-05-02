@@ -1,5 +1,15 @@
 # API Contract
 
+## MVP Freeze
+
+This document is now the frozen MVP v1 backend contract for frontend
+integration. During the current frontend integration window:
+
+- do not rename response fields casually
+- do not switch payloads to camelCase
+- do not change list ordering semantics without updating this file and tests
+- do not change status-string meanings without updating this file and tests
+
 This document records the backend API surface that is currently implemented.
 It is the contract frontend and backend work should follow unless we explicitly
 change an endpoint in a later phase.
@@ -10,6 +20,26 @@ change an endpoint in a later phase.
 - Content type: `application/json`
 - Success responses use route-specific JSON bodies
 - Errors use one shared envelope
+- All request and response fields use `snake_case`
+- Identifier fields use `*_id`
+- Timestamps are ISO-8601 datetime strings
+
+## Stable Naming And Ordering Rules
+
+- `branches` in project responses are ordered by ascending `id`
+- `child_branch_ids` in branch detail responses are ordered by ascending `id`
+- `tasks` in meeting responses are ordered by ascending `id`
+- `GET /branches/{branch_id}/updates` returns newest-first ordering
+- `citations` in QA responses are returned in retrieval ranking order
+- Update AI state uses:
+  - `ai_summary`
+  - `ai_suggested_subbranches`
+  - `ai_status`
+  - `ai_error`
+- Meeting AI state uses per-step fields:
+  - `ai_briefing` with `briefing_status` and `briefing_error`
+  - `ai_summary` with `summary_status` and `summary_error`
+  - `tasks` with `task_split_status` and `task_split_error`
 
 ## Error Format
 
