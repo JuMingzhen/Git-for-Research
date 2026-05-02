@@ -12,6 +12,8 @@ from gfr_backend.api.dependencies import (
     get_llm_service,
     get_retriever_service,
 )
+from gfr_backend.db.base import Base
+from gfr_backend.db.models import Team, User, UserRole
 from gfr_backend.main import create_app
 
 TEST_DB_URL = "sqlite:///./test_step1.db"
@@ -36,7 +38,9 @@ def test_engine():
         future=True,
         connect_args={"check_same_thread": False},
     )
+    Base.metadata.create_all(bind=engine)
     yield engine
+    Base.metadata.drop_all(bind=engine)
     engine.dispose()
     if os.path.exists("test_step1.db"):
         os.remove("test_step1.db")
@@ -88,3 +92,23 @@ def error_app() -> FastAPI:
         raise RuntimeError("boom")
 
     return app
+
+
+@pytest.fixture()
+def seeded_users(raw_session: Session) -> dict[str, int]:
+    team = Team(name="Research Team")
+    raw_session.add(team)
+    raw_session.flush()
+
+    advisor = User(name="Advisor A", role=UserRole.advisor, team_id=team.id)
+    student_a = User(name="Student A", role=UserRole.student, team_id=team.id)
+    student_b = User(name="Student B", role=UserRole.student, team_id=team.id)
+    raw_session.add_all([advisor, student_a, student_b])
+    raw_session.commit()
+
+    return {
+        "team_id": team.id,
+        "advisor_id": advisor.id,
+        "student_a_id": student_a.id,
+        "student_b_id": student_b.id,
+    }

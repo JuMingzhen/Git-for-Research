@@ -1,0 +1,50 @@
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
+from gfr_backend.api.dependencies import get_db_session
+from gfr_backend.schemas.branches import BranchDetail, CreateBranchRequest
+from gfr_backend.services.branches import create_branch, get_branch_or_404
+
+router = APIRouter(prefix="/branches", tags=["branches"])
+
+
+def _build_branch_response(branch) -> BranchDetail:
+    child_branch_ids = sorted(child.id for child in branch.child_branches)
+    return BranchDetail(
+        id=branch.id,
+        project_id=branch.project_id,
+        parent_branch_id=branch.parent_branch_id,
+        owner_id=branch.owner_id,
+        title=branch.title,
+        goal=branch.goal,
+        status=branch.status,
+        branch_type=branch.branch_type,
+        created_at=branch.created_at,
+        child_branch_ids=child_branch_ids,
+    )
+
+
+@router.post("", response_model=BranchDetail, status_code=status.HTTP_201_CREATED)
+def create_branch_route(
+    payload: CreateBranchRequest,
+    db: Session = Depends(get_db_session),
+) -> BranchDetail:
+    branch = create_branch(
+        db,
+        project_id=payload.project_id,
+        parent_branch_id=payload.parent_branch_id,
+        owner_id=payload.owner_id,
+        title=payload.title,
+        goal=payload.goal,
+        branch_type=payload.branch_type,
+    )
+    return _build_branch_response(branch)
+
+
+@router.get("/{branch_id}", response_model=BranchDetail)
+def get_branch_route(
+    branch_id: int,
+    db: Session = Depends(get_db_session),
+) -> BranchDetail:
+    branch = get_branch_or_404(db, branch_id)
+    return _build_branch_response(branch)
