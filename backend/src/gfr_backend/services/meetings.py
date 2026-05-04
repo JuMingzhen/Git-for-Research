@@ -38,7 +38,10 @@ def create_meeting(
 def get_meeting_or_404(session: Session, meeting_id: int) -> Meeting:
     statement = (
         select(Meeting)
-        .options(selectinload(Meeting.tasks))
+        .options(
+            selectinload(Meeting.tasks).selectinload(MeetingTask.assignee),
+            selectinload(Meeting.tasks).selectinload(MeetingTask.branch),
+        )
         .where(Meeting.id == meeting_id)
     )
     meeting = session.execute(statement).scalar_one_or_none()
@@ -48,6 +51,74 @@ def get_meeting_or_404(session: Session, meeting_id: int) -> Meeting:
             detail=f"Meeting {meeting_id} was not found.",
         )
     return meeting
+
+
+def list_project_meetings(session: Session, project_id: int) -> list[Meeting]:
+    _get_project_with_branches(session, project_id)
+    statement = (
+        select(Meeting)
+        .options(
+            selectinload(Meeting.tasks).selectinload(MeetingTask.assignee),
+            selectinload(Meeting.tasks).selectinload(MeetingTask.branch),
+        )
+        .where(Meeting.project_id == project_id)
+        .order_by(Meeting.created_at.desc(), Meeting.id.desc())
+    )
+    return list(session.execute(statement).scalars().all())
+
+
+def list_project_tasks(session: Session, project_id: int) -> list[MeetingTask]:
+    _get_project_with_branches(session, project_id)
+    statement = (
+        select(MeetingTask)
+        .join(MeetingTask.meeting)
+        .options(
+            selectinload(MeetingTask.assignee),
+            selectinload(MeetingTask.branch),
+            selectinload(MeetingTask.meeting),
+        )
+        .where(Meeting.project_id == project_id)
+        .order_by(MeetingTask.created_at.desc(), MeetingTask.id.desc())
+    )
+    return list(session.execute(statement).scalars().all())
+
+
+def update_meeting_task_status(
+    session: Session,
+    *,
+    task_id: int,
+    status_value: str,
+) -> MeetingTask:
+    task = get_meeting_task_or_404(session, task_id)
+    cleaned_status = status_value.strip()
+    if not cleaned_status:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task status must not be empty.",
+        )
+
+    task.status = cleaned_status
+    session.commit()
+    return get_meeting_task_or_404(session, task.id)
+
+
+def get_meeting_task_or_404(session: Session, task_id: int) -> MeetingTask:
+    statement = (
+        select(MeetingTask)
+        .options(
+            selectinload(MeetingTask.assignee),
+            selectinload(MeetingTask.branch),
+            selectinload(MeetingTask.meeting),
+        )
+        .where(MeetingTask.id == task_id)
+    )
+    task = session.execute(statement).scalar_one_or_none()
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Meeting task {task_id} was not found.",
+        )
+    return task
 
 
 def build_meeting_briefing(

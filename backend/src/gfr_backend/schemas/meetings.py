@@ -14,13 +14,19 @@ class MeetingTaskResponse(BaseModel):
     id: int
     meeting_id: int
     assignee_id: int
+    assignee_name: str
     branch_id: int
+    branch_title: str
     description: str
     due_hint: str | None
     status: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class UpdateMeetingTaskStatusRequest(BaseModel):
+    status: str
 
 
 class MeetingResponse(BaseModel):

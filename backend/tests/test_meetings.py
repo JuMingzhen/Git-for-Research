@@ -113,10 +113,30 @@ def test_meeting_happy_path_with_task_split(client, seeded_users) -> None:
     task_map = {task["branch_id"]: task for task in split_body["tasks"]}
     assert task_map[branch_a["id"]]["assignee_id"] == seeded_users["student_a_id"]
     assert task_map[branch_b["id"]]["assignee_id"] == seeded_users["student_b_id"]
+    assert task_map[branch_a["id"]]["assignee_name"] == "Student A"
+    assert task_map[branch_b["id"]]["branch_title"] == "Student B Branch"
 
     meeting_after_split = client.get(f"/meetings/{meeting['id']}")
     assert meeting_after_split.status_code == 200
     assert len(meeting_after_split.json()["tasks"]) == 2
+
+    project_meetings = client.get(f"/projects/{project['id']}/meetings")
+    assert project_meetings.status_code == 200
+    assert len(project_meetings.json()) == 1
+    assert project_meetings.json()[0]["id"] == meeting["id"]
+
+    project_tasks = client.get(f"/projects/{project['id']}/tasks")
+    assert project_tasks.status_code == 200
+    task_list = project_tasks.json()
+    assert len(task_list) == 2
+    assert {task["assignee_name"] for task in task_list} == {"Student A", "Student B"}
+
+    updated_task = client.patch(
+        f"/meeting-tasks/{task_list[0]['id']}",
+        json={"status": "in_progress"},
+    )
+    assert updated_task.status_code == 200
+    assert updated_task.json()["status"] == "in_progress"
 
 
 def test_create_meeting_rejects_unknown_project(client, seeded_users) -> None:
@@ -139,6 +159,49 @@ def test_briefing_rejects_unknown_meeting(client) -> None:
 
     assert response.status_code == 404
     assert response.json()["error"]["message"] == "Meeting 999 was not found."
+
+
+def test_project_display_routes_reject_unknown_project(client) -> None:
+    meetings_response = client.get("/projects/999/meetings")
+    tasks_response = client.get("/projects/999/tasks")
+
+    assert meetings_response.status_code == 404
+    assert meetings_response.json()["error"]["message"] == "Project 999 was not found."
+    assert tasks_response.status_code == 404
+    assert tasks_response.json()["error"]["message"] == "Project 999 was not found."
+
+
+def test_update_meeting_task_rejects_invalid_requests(client) -> None:
+    missing_task = client.patch("/meeting-tasks/999", json={"status": "done"})
+
+    assert missing_task.status_code == 404
+    assert missing_task.json()["error"]["message"] == "Meeting task 999 was not found."
+
+
+def test_update_meeting_task_rejects_empty_status(client, seeded_users) -> None:
+    project = _create_project(client, seeded_users["advisor_id"], title="Task Status Project")
+    branch = _create_personal_branch(
+        client,
+        project,
+        seeded_users["student_a_id"],
+        "Student A Branch",
+    )
+    _create_update(client, branch["id"], seeded_users["student_a_id"], "Prepared input data.")
+    meeting = client.post(
+        "/meetings",
+        json={
+            "project_id": project["id"],
+            "title": "Task Status Meeting",
+            "scheduled_at": None,
+            "raw_notes": "Student A should prepare a follow-up figure.",
+        },
+    ).json()
+    split = client.post(f"/meetings/{meeting['id']}/split-tasks")
+    task_id = split.json()["tasks"][0]["id"]
+
+    empty_status = client.patch(f"/meeting-tasks/{task_id}", json={"status": "   "})
+    assert empty_status.status_code == 400
+    assert empty_status.json()["error"]["message"] == "Task status must not be empty."
 
 
 class BrokenMeetingLLM:

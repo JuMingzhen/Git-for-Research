@@ -20,6 +20,8 @@ For full examples, see [API_CONTRACT.md](D:\资料\dev\Git_for_Research\backend\
 - `GET /ready`
 - `POST /projects`
 - `GET /projects/{project_id}`
+- `GET /projects/{project_id}/meetings`
+- `GET /projects/{project_id}/tasks`
 - `POST /branches`
 - `GET /branches/{branch_id}`
 - `GET /branches/{branch_id}/updates`
@@ -29,6 +31,8 @@ For full examples, see [API_CONTRACT.md](D:\资料\dev\Git_for_Research\backend\
 - `POST /meetings/{meeting_id}/briefing`
 - `POST /meetings/{meeting_id}/summarize`
 - `POST /meetings/{meeting_id}/split-tasks`
+- `GET /meeting-tasks/{task_id}`
+- `PATCH /meeting-tasks/{task_id}`
 - `POST /qa/ask`
 
 ## Field Conventions Frontend Can Rely On
@@ -36,11 +40,13 @@ For full examples, see [API_CONTRACT.md](D:\资料\dev\Git_for_Research\backend\
 - Project responses always include:
   - `id`, `title`, `description`, `owner_id`, `status`, `main_branch_id`, `branches`
 - Branch detail responses always include:
-  - `id`, `project_id`, `parent_branch_ids`, `owner_id`, `title`, `goal`, `status`, `branch_type`, `created_at`, `child_branch_ids`
+  - `id`, `project_id`, `parent_branch_ids`, `owner_id`, `owner_name`, `title`, `goal`, `status`, `branch_type`, `created_at`, `child_branch_ids`
 - Update responses always include:
   - `id`, `branch_id`, `author_id`, `content`, `blockers`, `next_step`, `ai_summary`, `ai_suggested_subbranches`, `ai_status`, `ai_error`, `created_at`
 - Meeting responses always include:
   - `id`, `project_id`, `title`, `scheduled_at`, `raw_notes`, `ai_briefing`, `briefing_status`, `briefing_error`, `ai_summary`, `summary_status`, `summary_error`, `task_split_status`, `task_split_error`, `created_at`, `tasks`
+- Meeting task items always include:
+  - `id`, `meeting_id`, `assignee_id`, `assignee_name`, `branch_id`, `branch_title`, `description`, `due_hint`, `status`, `created_at`
 - QA responses always include:
   - `answer`, `status`, `citations`
 - Citation items always include:
@@ -57,6 +63,9 @@ For full examples, see [API_CONTRACT.md](D:\资料\dev\Git_for_Research\backend\
   - `summary_status = "pending" | "completed" | "failed"`
 - Meeting task split:
   - `task_split_status = "pending" | "completed" | "failed"`
+- Meeting task item:
+  - `status` is user-editable text
+  - current demo flow uses values like `todo`, `in_progress`, and `done`
 - QA:
   - `status = "answered"` means citations were found and returned
   - `status = "insufficient_information"` means frontend should show a safe fallback state, not pretend an answer exists

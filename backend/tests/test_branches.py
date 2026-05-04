@@ -33,6 +33,7 @@ def test_create_personal_branch_under_main_branch(client, seeded_users) -> None:
     body = response.json()
     assert body["parent_branch_ids"] == [project["main_branch_id"]]
     assert body["owner_id"] == seeded_users["student_a_id"]
+    assert body["owner_name"] == "Student A"
     assert body["branch_type"] == BranchType.personal.value
 
 

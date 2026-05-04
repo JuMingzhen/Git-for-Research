@@ -16,6 +16,7 @@ def _build_branch_response(branch) -> BranchDetail:
         project_id=branch.project_id,
         parent_branch_ids=branch.parent_branch_ids,
         owner_id=branch.owner_id,
+        owner_name=branch.owner.name,
         title=branch.title,
         goal=branch.goal,
         status=branch.status,

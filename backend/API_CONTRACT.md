@@ -29,6 +29,8 @@ change an endpoint in a later phase.
 - `branches` in project responses are ordered by ascending `id`
 - `parent_branch_ids` in branch responses are ordered by ascending `id`
 - `child_branch_ids` in branch detail responses are ordered by ascending `id`
+- `GET /projects/{project_id}/meetings` returns newest-first ordering
+- `GET /projects/{project_id}/tasks` returns newest-first ordering
 - `tasks` in meeting responses are ordered by ascending `id`
 - `GET /branches/{branch_id}/updates` returns newest-first ordering
 - `citations` in QA responses are returned in retrieval ranking order
@@ -126,6 +128,7 @@ Response `201`:
       "project_id": 1,
       "parent_branch_ids": [],
       "owner_id": 1,
+      "owner_name": "Advisor A",
       "title": "Main Branch",
       "goal": "Primary research track for Multimodal Research Assistant",
       "status": "active",
@@ -146,6 +149,67 @@ Common errors:
 - Purpose: fetch one project with its current branches
 
 Response `200`: same shape as `POST /projects`
+
+Common errors:
+
+- `404` when `project_id` does not exist
+
+### `GET /projects/{project_id}/meetings`
+
+- Purpose: list project meetings for frontend overview screens
+- Ordering: newest first
+
+Response `200`:
+
+```json
+[
+  {
+    "id": 2,
+    "project_id": 1,
+    "title": "Weekly Group Meeting",
+    "scheduled_at": "2026-05-03T10:00:00",
+    "raw_notes": "Student A should refine baseline. Student B should tighten evaluation.",
+    "ai_briefing": "Briefing for Meeting Project: 2 updates",
+    "briefing_status": "completed",
+    "briefing_error": null,
+    "ai_summary": "Meeting summary for Meeting Project: Student A should refine baseline. Student B should tighten evaluation.",
+    "summary_status": "completed",
+    "summary_error": null,
+    "task_split_status": "completed",
+    "task_split_error": null,
+    "created_at": "2026-05-02T12:00:00",
+    "tasks": []
+  }
+]
+```
+
+Common errors:
+
+- `404` when `project_id` does not exist
+
+### `GET /projects/{project_id}/tasks`
+
+- Purpose: list all meeting-generated tasks under one project for overview and inbox screens
+- Ordering: newest first
+
+Response `200`:
+
+```json
+[
+  {
+    "id": 1,
+    "meeting_id": 1,
+    "assignee_id": 2,
+    "assignee_name": "Student A",
+    "branch_id": 2,
+    "branch_title": "Student A Branch",
+    "description": "Task for Student A Branch: Follow up on the ablation result.",
+    "due_hint": "before next meeting",
+    "status": "todo",
+    "created_at": "2026-05-02T12:00:00"
+  }
+]
+```
 
 Common errors:
 
@@ -178,6 +242,7 @@ Response `201`:
   "project_id": 1,
   "parent_branch_ids": [1],
   "owner_id": 2,
+  "owner_name": "Student A",
   "title": "Student A Branch",
   "goal": "Own the data pipeline direction.",
   "status": "active",
@@ -435,7 +500,9 @@ Response `200`:
       "id": 1,
       "meeting_id": 1,
       "assignee_id": 2,
+      "assignee_name": "Student A",
       "branch_id": 2,
+      "branch_title": "Student A Branch",
       "description": "Task for Student A Branch: Meeting summary for Meeting Project: Student A should refine baseline. Student B should tighten evaluation.",
       "due_hint": "before next meeting",
       "status": "todo",
@@ -454,6 +521,57 @@ Behavior notes:
   - `task_split_status = "failed"`
   - `task_split_error` explains the reason
   - `tasks` remains empty
+
+## Meeting Task Endpoints
+
+### `GET /meeting-tasks/{task_id}`
+
+- Purpose: fetch one task card with human-readable display fields
+
+Response `200`:
+
+```json
+{
+  "id": 1,
+  "meeting_id": 1,
+  "assignee_id": 2,
+  "assignee_name": "Student A",
+  "branch_id": 2,
+  "branch_title": "Student A Branch",
+  "description": "Task for Student A Branch: Follow up on the ablation result.",
+  "due_hint": "before next meeting",
+  "status": "todo",
+  "created_at": "2026-05-02T12:00:00"
+}
+```
+
+Common errors:
+
+- `404` when `task_id` does not exist
+
+### `PATCH /meeting-tasks/{task_id}`
+
+- Purpose: update one task status for demo task boards
+
+Request body:
+
+```json
+{
+  "status": "in_progress"
+}
+```
+
+Response `200`: same shape as `GET /meeting-tasks/{task_id}`
+
+Behavior notes:
+
+- `status` is stored as trimmed text
+- empty or whitespace-only status is rejected with `400`
+
+Common errors:
+
+- `400` when `status` is empty after trimming
+- `404` when `task_id` does not exist
 
 ## QA Endpoints
 

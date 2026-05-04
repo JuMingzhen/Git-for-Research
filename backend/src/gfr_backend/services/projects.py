@@ -55,6 +55,7 @@ def get_project_or_404(session: Session, project_id: int) -> Project:
         select(Project)
         .options(
             selectinload(Project.branches).selectinload(ResearchBranch.parent_branches),
+            selectinload(Project.branches).selectinload(ResearchBranch.owner),
         )
         .where(Project.id == project_id)
     )

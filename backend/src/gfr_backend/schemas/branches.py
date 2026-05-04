@@ -10,6 +10,7 @@ class BranchSummary(BaseModel):
     project_id: int
     parent_branch_ids: list[int]
     owner_id: int
+    owner_name: str
     title: str
     goal: str | None
     status: str

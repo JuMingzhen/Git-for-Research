@@ -89,6 +89,7 @@ def get_branch_or_404(session: Session, branch_id: int) -> ResearchBranch:
         .options(
             selectinload(ResearchBranch.parent_branches),
             selectinload(ResearchBranch.child_branches),
+            selectinload(ResearchBranch.owner),
         )
         .where(ResearchBranch.id == branch_id)
     )
