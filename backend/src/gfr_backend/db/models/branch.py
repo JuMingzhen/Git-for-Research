@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Table, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from gfr_backend.db.base import Base
@@ -13,15 +13,19 @@ class BranchType(enum.StrEnum):
     sub = "sub"
 
 
+research_branch_parents = Table(
+    "research_branch_parents",
+    Base.metadata,
+    Column("branch_id", ForeignKey("research_branches.id"), primary_key=True),
+    Column("parent_branch_id", ForeignKey("research_branches.id"), primary_key=True),
+)
+
+
 class ResearchBranch(Base):
     __tablename__ = "research_branches"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
-    parent_branch_id: Mapped[int | None] = mapped_column(
-        ForeignKey("research_branches.id"),
-        nullable=True,
-    )
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     goal: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -39,10 +43,26 @@ class ResearchBranch(Base):
         foreign_keys=[project_id],
     )
     owner = relationship("User", back_populates="owned_branches")
-    parent_branch = relationship(
+    parent_branches = relationship(
         "ResearchBranch",
-        remote_side="ResearchBranch.id",
+        secondary=research_branch_parents,
+        primaryjoin=id == research_branch_parents.c.branch_id,
+        secondaryjoin=id == research_branch_parents.c.parent_branch_id,
         back_populates="child_branches",
     )
-    child_branches = relationship("ResearchBranch", back_populates="parent_branch")
+    child_branches = relationship(
+        "ResearchBranch",
+        secondary=research_branch_parents,
+        primaryjoin=id == research_branch_parents.c.parent_branch_id,
+        secondaryjoin=id == research_branch_parents.c.branch_id,
+        back_populates="parent_branches",
+    )
     updates = relationship("ProgressUpdate", back_populates="branch")
+
+    @property
+    def parent_branch_ids(self) -> list[int]:
+        return sorted(parent.id for parent in self.parent_branches)
+
+    @property
+    def child_branch_ids(self) -> list[int]:
+        return sorted(child.id for child in self.child_branches)

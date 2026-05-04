@@ -28,7 +28,7 @@ def test_mvp_end_to_end_flow_freezes_backend_contract(client, seeded_users) -> N
         "/branches",
         json={
             "project_id": project_body["id"],
-            "parent_branch_id": project_body["main_branch_id"],
+            "parent_branch_ids": [project_body["main_branch_id"]],
             "owner_id": seeded_users["student_a_id"],
             "title": "Student A Branch",
             "goal": "Own retrieval experiments.",
@@ -40,8 +40,9 @@ def test_mvp_end_to_end_flow_freezes_backend_contract(client, seeded_users) -> N
     assert set(branch_a_body.keys()) == {
         "id",
         "project_id",
-        "parent_branch_id",
+        "parent_branch_ids",
         "owner_id",
+        "owner_name",
         "title",
         "goal",
         "status",
@@ -54,7 +55,7 @@ def test_mvp_end_to_end_flow_freezes_backend_contract(client, seeded_users) -> N
         "/branches",
         json={
             "project_id": project_body["id"],
-            "parent_branch_id": project_body["main_branch_id"],
+            "parent_branch_ids": [project_body["main_branch_id"]],
             "owner_id": seeded_users["student_b_id"],
             "title": "Student B Branch",
             "goal": "Own evaluation workflow.",
@@ -152,6 +153,18 @@ def test_mvp_end_to_end_flow_freezes_backend_contract(client, seeded_users) -> N
     assert len(split_body["tasks"]) == 2
     task_branch_ids = [task["branch_id"] for task in split_body["tasks"]]
     assert task_branch_ids == sorted(task_branch_ids)
+    assert set(split_body["tasks"][0].keys()) == {
+        "id",
+        "meeting_id",
+        "assignee_id",
+        "assignee_name",
+        "branch_id",
+        "branch_title",
+        "description",
+        "due_hint",
+        "status",
+        "created_at",
+    }
 
     qa = client.post(
         "/qa/ask",
