@@ -27,6 +27,7 @@ change an endpoint in a later phase.
 ## Stable Naming And Ordering Rules
 
 - `branches` in project responses are ordered by ascending `id`
+- `parent_branch_ids` in branch responses are ordered by ascending `id`
 - `child_branch_ids` in branch detail responses are ordered by ascending `id`
 - `tasks` in meeting responses are ordered by ascending `id`
 - `GET /branches/{branch_id}/updates` returns newest-first ordering
@@ -123,7 +124,7 @@ Response `201`:
     {
       "id": 1,
       "project_id": 1,
-      "parent_branch_id": null,
+      "parent_branch_ids": [],
       "owner_id": 1,
       "title": "Main Branch",
       "goal": "Primary research track for Multimodal Research Assistant",
@@ -161,7 +162,7 @@ Request body:
 ```json
 {
   "project_id": 1,
-  "parent_branch_id": 1,
+  "parent_branch_ids": [1],
   "owner_id": 2,
   "title": "Student A Branch",
   "goal": "Own the data pipeline direction.",
@@ -175,7 +176,7 @@ Response `201`:
 {
   "id": 2,
   "project_id": 1,
-  "parent_branch_id": 1,
+  "parent_branch_ids": [1],
   "owner_id": 2,
   "title": "Student A Branch",
   "goal": "Own the data pipeline direction.",
@@ -189,15 +190,17 @@ Response `201`:
 Business constraints currently enforced:
 
 - `main` branches cannot be created through this API
-- personal branches must sit under the project's main branch
+- personal branches must have exactly one parent and that parent must be the project's main branch
 - personal branches must be owned by student users
 - sub-branches cannot be created directly under the main branch
-- sub-branches must stay under a branch owned by the same user
-- parent branch and target project must match
+- sub-branches can have one or more parent branches
+- sub-branches must stay under parent branches owned by the same user
+- all parent branches and the target project must match
+- duplicate parent ids are rejected
 
 ### `GET /branches/{branch_id}`
 
-- Purpose: fetch one branch and its direct child branch ids
+- Purpose: fetch one branch with its direct parent ids and child ids
 
 Response `200`: same shape as `POST /branches`
 

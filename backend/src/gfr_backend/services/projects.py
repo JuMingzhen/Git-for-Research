@@ -36,7 +36,6 @@ def create_project(
 
     main_branch = ResearchBranch(
         project_id=project.id,
-        parent_branch_id=None,
         owner_id=owner_id,
         title="Main Branch",
         goal=f"Primary research track for {title}",
@@ -54,7 +53,9 @@ def create_project(
 def get_project_or_404(session: Session, project_id: int) -> Project:
     statement = (
         select(Project)
-        .options(selectinload(Project.branches))
+        .options(
+            selectinload(Project.branches).selectinload(ResearchBranch.parent_branches),
+        )
         .where(Project.id == project_id)
     )
     project = session.execute(statement).scalar_one_or_none()

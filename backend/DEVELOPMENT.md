@@ -86,3 +86,4 @@ A backend step counts as complete only if all of the following are true:
 - Step 3: progress updates plus AI summary and sub-branch suggestion flow
 - Step 4: meetings, briefing, meeting summary, and task split flow
 - Step 5: project-local history QA with required citations and insufficient-information fallback
+- Branch lineage upgrade: student branch graphs now support multi-parent merge milestones via `parent_branch_ids`

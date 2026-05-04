@@ -11,18 +11,17 @@ router = APIRouter(prefix="/branches", tags=["branches"])
 
 
 def _build_branch_response(branch) -> BranchDetail:
-    child_branch_ids = sorted(child.id for child in branch.child_branches)
     return BranchDetail(
         id=branch.id,
         project_id=branch.project_id,
-        parent_branch_id=branch.parent_branch_id,
+        parent_branch_ids=branch.parent_branch_ids,
         owner_id=branch.owner_id,
         title=branch.title,
         goal=branch.goal,
         status=branch.status,
         branch_type=branch.branch_type,
         created_at=branch.created_at,
-        child_branch_ids=child_branch_ids,
+        child_branch_ids=branch.child_branch_ids,
     )
 
 
@@ -34,7 +33,7 @@ def create_branch_route(
     branch = create_branch(
         db,
         project_id=payload.project_id,
-        parent_branch_id=payload.parent_branch_id,
+        parent_branch_ids=payload.parent_branch_ids,
         owner_id=payload.owner_id,
         title=payload.title,
         goal=payload.goal,

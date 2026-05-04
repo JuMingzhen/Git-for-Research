@@ -19,7 +19,7 @@ def _create_personal_branch(client, project: dict, owner_id: int, title: str) ->
         "/branches",
         json={
             "project_id": project["id"],
-            "parent_branch_id": project["main_branch_id"],
+            "parent_branch_ids": [project["main_branch_id"]],
             "owner_id": owner_id,
             "title": title,
             "goal": f"Goal for {title}",

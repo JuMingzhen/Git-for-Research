@@ -36,7 +36,7 @@ For full examples, see [API_CONTRACT.md](D:\资料\dev\Git_for_Research\backend\
 - Project responses always include:
   - `id`, `title`, `description`, `owner_id`, `status`, `main_branch_id`, `branches`
 - Branch detail responses always include:
-  - `id`, `project_id`, `parent_branch_id`, `owner_id`, `title`, `goal`, `status`, `branch_type`, `created_at`, `child_branch_ids`
+  - `id`, `project_id`, `parent_branch_ids`, `owner_id`, `title`, `goal`, `status`, `branch_type`, `created_at`, `child_branch_ids`
 - Update responses always include:
   - `id`, `branch_id`, `author_id`, `content`, `blockers`, `next_step`, `ai_summary`, `ai_suggested_subbranches`, `ai_status`, `ai_error`, `created_at`
 - Meeting responses always include:
@@ -85,5 +85,7 @@ Frontend should read:
 
 - Do not assume camelCase aliases exist
 - Do not assume empty strings are used instead of `null`
+- Branch lineage is a DAG, not a strict tree
+  - use `parent_branch_ids` instead of assuming a single parent
 - When QA returns `insufficient_information`, render that state directly
 - When meeting/update AI fields show `failed`, keep the underlying saved resource visible

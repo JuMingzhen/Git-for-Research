@@ -28,7 +28,7 @@ def test_mvp_end_to_end_flow_freezes_backend_contract(client, seeded_users) -> N
         "/branches",
         json={
             "project_id": project_body["id"],
-            "parent_branch_id": project_body["main_branch_id"],
+            "parent_branch_ids": [project_body["main_branch_id"]],
             "owner_id": seeded_users["student_a_id"],
             "title": "Student A Branch",
             "goal": "Own retrieval experiments.",
@@ -40,7 +40,7 @@ def test_mvp_end_to_end_flow_freezes_backend_contract(client, seeded_users) -> N
     assert set(branch_a_body.keys()) == {
         "id",
         "project_id",
-        "parent_branch_id",
+        "parent_branch_ids",
         "owner_id",
         "title",
         "goal",
@@ -54,7 +54,7 @@ def test_mvp_end_to_end_flow_freezes_backend_contract(client, seeded_users) -> N
         "/branches",
         json={
             "project_id": project_body["id"],
-            "parent_branch_id": project_body["main_branch_id"],
+            "parent_branch_ids": [project_body["main_branch_id"]],
             "owner_id": seeded_users["student_b_id"],
             "title": "Student B Branch",
             "goal": "Own evaluation workflow.",

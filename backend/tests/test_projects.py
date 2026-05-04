@@ -18,7 +18,7 @@ def test_create_project_auto_creates_main_branch(client, seeded_users) -> None:
     assert body["main_branch_id"] is not None
     assert len(body["branches"]) == 1
     assert body["branches"][0]["branch_type"] == BranchType.main.value
-    assert body["branches"][0]["parent_branch_id"] is None
+    assert body["branches"][0]["parent_branch_ids"] == []
 
 
 def test_get_project_returns_existing_branches(client, seeded_users) -> None:

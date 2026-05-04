@@ -8,7 +8,7 @@ from gfr_backend.db.models.branch import BranchType
 class BranchSummary(BaseModel):
     id: int
     project_id: int
-    parent_branch_id: int | None
+    parent_branch_ids: list[int]
     owner_id: int
     title: str
     goal: str | None
@@ -25,7 +25,7 @@ class BranchDetail(BranchSummary):
 
 class CreateBranchRequest(BaseModel):
     project_id: int
-    parent_branch_id: int
+    parent_branch_ids: list[int]
     owner_id: int
     title: str
     goal: str | None = None
