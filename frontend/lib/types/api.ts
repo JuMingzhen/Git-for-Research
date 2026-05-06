@@ -84,6 +84,18 @@ export interface QaRequest {
   question: string;
 }
 
+export interface CreateUpdateRequest {
+  branch_id: number;
+  author_id: number;
+  content: string;
+  blockers: string | null;
+  next_step: string | null;
+}
+
+export interface UpdateTaskRequest {
+  status: string;
+}
+
 export interface ApiErrorEnvelope {
   error: {
     code: string;
