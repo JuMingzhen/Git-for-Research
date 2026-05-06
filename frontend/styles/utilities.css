@@ -1,0 +1,106 @@
+[data-persona-theme="advisor"] {
+  --persona-accent: var(--advisor-accent);
+  --persona-accent-soft: var(--advisor-accent-soft);
+  --persona-glow: var(--advisor-glow);
+}
+
+[data-persona-theme="student"] {
+  --persona-accent: var(--student-accent);
+  --persona-accent-soft: var(--student-accent-soft);
+  --persona-glow: var(--student-glow);
+}
+
+.ambient-grid {
+  position: relative;
+  isolation: isolate;
+}
+
+.ambient-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image:
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.75), transparent 92%);
+  pointer-events: none;
+}
+
+.ambient-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 18% 22%, var(--persona-glow), transparent 18rem),
+    radial-gradient(circle at 84% 14%, rgba(184, 138, 71, 0.12), transparent 22rem),
+    radial-gradient(circle at 78% 80%, rgba(45, 79, 132, 0.1), transparent 26rem);
+  pointer-events: none;
+}
+
+.paper-panel {
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.88), rgba(251, 247, 239, 0.76));
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(14px);
+}
+
+.page-inset {
+  padding-inline: var(--space-page-x);
+  padding-block: var(--space-page-y);
+}
+
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.display-title {
+  font-family: var(--font-display);
+  letter-spacing: -0.035em;
+}
+
+.mono-caption {
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.surface-outline {
+  border: 1px solid var(--border-strong);
+}
+
+.soft-fade-in {
+  animation: soft-fade-in 0.65s ease-out both;
+}
+
+.stagger-in {
+  animation: stagger-in 0.7s ease-out both;
+}
+
+@keyframes soft-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
