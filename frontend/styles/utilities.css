@@ -41,7 +41,7 @@
 }
 
 .paper-panel {
-  background: linear-gradient(180deg, rgba(255, 253, 249, 0.88), rgba(251, 247, 239, 0.76));
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.9), rgba(251, 247, 239, 0.78));
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(14px);
@@ -55,7 +55,7 @@
 .page-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.65rem;
 }
 
 .display-title {
@@ -81,6 +81,16 @@
   animation: stagger-in 0.7s ease-out both;
 }
 
+.ai-warning-note {
+  border: 1px solid rgba(155, 106, 39, 0.22);
+  background: var(--warning-soft);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 0.9rem;
+  color: var(--warning);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
 @keyframes soft-fade-in {
   from {
     opacity: 0;
@@ -102,5 +112,22 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .soft-fade-in,
+  .stagger-in {
+    animation: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-stack {
+    gap: 1.15rem;
+  }
+
+  .paper-panel {
+    backdrop-filter: blur(10px);
   }
 }

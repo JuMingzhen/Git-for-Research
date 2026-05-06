@@ -1,5 +1,6 @@
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { RefreshButton } from "@/components/refresh-button";
 import { SectionCard } from "@/components/section-card";
 import { StatusBadge } from "@/components/status-badge";
 import { format_short_date } from "@/lib/format";
@@ -37,6 +38,7 @@ export function TaskRefluxPanel({
         <ErrorState
           title="Task reflux unavailable"
           description={error_message}
+          action={<RefreshButton label="Retry task fetch" tone="advisor" />}
         />
       ) : null}
       {!error_message && tasks.length === 0 ? (

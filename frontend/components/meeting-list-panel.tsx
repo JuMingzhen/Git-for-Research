@@ -1,5 +1,6 @@
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { RefreshButton } from "@/components/refresh-button";
 import { SectionCard } from "@/components/section-card";
 import { StatusBadge } from "@/components/status-badge";
 import { format_long_date, truncate_text } from "@/lib/format";
@@ -36,6 +37,7 @@ export function MeetingListPanel({
         <ErrorState
           title="Meeting list unavailable"
           description={error_message}
+          action={<RefreshButton label="Retry meeting fetch" tone="advisor" />}
         />
       ) : null}
       {!error_message && meetings.length === 0 ? (
@@ -84,6 +86,11 @@ export function MeetingListPanel({
                       180,
                     )}
                   </p>
+                  {meeting.briefing_status === "failed" ? (
+                    <div className="mt-4 ai-warning-note">
+                      Briefing generation failed, but the meeting record itself is still visible.
+                    </div>
+                  ) : null}
                 </div>
                 <div className="rounded-[var(--radius-sm)] bg-[var(--brass-soft)] p-4">
                   <p className="mono-caption text-[0.64rem] text-[var(--ink-muted)]">
@@ -95,6 +102,14 @@ export function MeetingListPanel({
                       180,
                     )}
                   </p>
+                  {meeting.summary_status === "failed" ||
+                  meeting.task_split_status === "failed" ? (
+                    <div className="mt-4 ai-warning-note">
+                      {meeting.task_split_status === "failed"
+                        ? "Task split failed, so meeting decisions may not yet have returned to student inboxes."
+                        : "Summary generation failed, but raw meeting data remains available through backend history."}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </article>

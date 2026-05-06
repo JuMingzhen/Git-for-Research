@@ -1,5 +1,6 @@
 import { ErrorState } from "@/components/error-state";
 import { EmptyState } from "@/components/empty-state";
+import { RefreshButton } from "@/components/refresh-button";
 import { SectionCard } from "@/components/section-card";
 import { StatusBadge } from "@/components/status-badge";
 import type { BranchSummary, MeetingTaskResponse } from "@/lib/types/api";
@@ -28,6 +29,7 @@ export function StudentStatusPanel({
           <ErrorState
             title="Task-derived activity is unavailable"
             description={`${tasks_error_message} The branch cards below still render from project structure only.`}
+            action={<RefreshButton label="Retry task fetch" tone="advisor" />}
           />
         </div>
       ) : null}

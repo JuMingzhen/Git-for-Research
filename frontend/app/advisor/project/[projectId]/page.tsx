@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/app-shell";
@@ -8,6 +7,7 @@ import { ProjectHero } from "@/components/project-hero";
 import { QaPanel } from "@/components/qa-panel";
 import { StudentStatusPanel } from "@/components/student-status-panel";
 import { TaskRefluxPanel } from "@/components/task-reflux-panel";
+import { WorkspaceNav } from "@/components/workspace-nav";
 import {
   get_project,
   get_project_meetings,
@@ -57,16 +57,7 @@ export default async function AdvisorProjectPage({
       title="A war-room view of branch structure, meeting closure, and project memory."
       description="This page is designed to let an advisor rebuild context quickly: understand the project DAG, inspect meeting outputs, see tasks flowing back into student tracks, and query history without rereading everything."
       badgeLabel="Advisor"
-      footer={
-        <div className="flex justify-end">
-          <Link
-            href="/demo"
-            className="rounded-full border border-border-subtle bg-white/60 px-4 py-2 text-sm font-medium transition hover:border-border-strong hover:bg-white/80"
-          >
-            Back to demo entry
-          </Link>
-        </div>
-      }
+      footer={<WorkspaceNav current_persona="advisor" />}
     >
       <ProjectHero project={project} />
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">

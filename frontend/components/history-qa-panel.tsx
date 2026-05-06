@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { ErrorState } from "@/components/error-state";
 import { LoadingBlock } from "@/components/loading-block";
+import { RefreshButton } from "@/components/refresh-button";
 import { SectionCard } from "@/components/section-card";
 import { StatusBadge } from "@/components/status-badge";
 import { ApiError } from "@/lib/api/client";
@@ -133,7 +134,11 @@ export function HistoryQaPanel({
             <LoadingBlock label="Searching project-local history and citations." />
           ) : null}
           {error_message ? (
-            <ErrorState title="QA request failed" description={error_message} />
+            <ErrorState
+              title="QA request failed"
+              description={error_message}
+              action={<RefreshButton label="Refresh route data" tone={accent_tone} />}
+            />
           ) : null}
           {!is_pending && !error_message && !result ? (
             <div className="rounded-[var(--radius-sm)] border border-dashed border-border-strong bg-white/40 px-5 py-6">

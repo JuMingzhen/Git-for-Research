@@ -1,15 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
+import { AppShell } from "@/components/app-shell";
+import { ErrorState } from "@/components/error-state";
 import { PersonalDagBoard } from "@/components/personal-dag-board";
 import { PersonalQaPanel } from "@/components/personal-qa-panel";
+import { RefreshButton } from "@/components/refresh-button";
 import { StudentHero } from "@/components/student-hero";
 import { TaskInbox } from "@/components/task-inbox";
 import { UpdateComposer } from "@/components/update-composer";
 import { UpdateTimeline } from "@/components/update-timeline";
-import { AppShell } from "@/components/app-shell";
+import { WorkspaceNav } from "@/components/workspace-nav";
 import type {
   BranchSummary,
   MeetingTaskResponse,
@@ -59,16 +61,7 @@ export function StudentWorkspace({
       title="A quieter workspace for one research track, with branch context always visible."
       description="This view is optimized for the student's real loop: keep the current branch legible, track blockers and next steps, act on meeting tasks, and record progress without losing structure."
       badgeLabel={config.label}
-      footer={
-        <div className="flex justify-end">
-          <Link
-            href="/demo"
-            className="rounded-full border border-border-subtle bg-white/60 px-4 py-2 text-sm font-medium transition hover:border-border-strong hover:bg-white/80"
-          >
-            Back to demo entry
-          </Link>
-        </div>
-      }
+      footer={<WorkspaceNav current_persona={config.key} />}
     >
       <StudentHero
         display_name={config.display_name ?? config.label}
@@ -94,9 +87,11 @@ export function StudentWorkspace({
         />
       </div>
       {updates_error_message ? (
-        <div className="rounded-[var(--radius-md)] border border-border-subtle bg-[var(--warning-soft)] px-5 py-4 text-sm leading-6 text-[var(--warning)]">
-          Update history could not be fully loaded: {updates_error_message}
-        </div>
+        <ErrorState
+          title="Update history partially unavailable"
+          description={`Update history could not be fully loaded: ${updates_error_message}`}
+          action={<RefreshButton label="Retry update fetch" tone="student" />}
+        />
       ) : null}
       <PersonalQaPanel
         project_id={project.id}

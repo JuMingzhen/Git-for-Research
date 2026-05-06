@@ -4,15 +4,16 @@
   --surface: rgba(252, 249, 242, 0.8);
   --surface-strong: rgba(255, 252, 247, 0.95);
   --surface-muted: rgba(247, 242, 233, 0.82);
+  --surface-elevated: rgba(255, 254, 250, 0.9);
   --border-subtle: rgba(77, 71, 58, 0.16);
   --border-strong: rgba(77, 71, 58, 0.28);
-  --shadow-soft: 0 18px 60px rgba(50, 41, 28, 0.12);
-  --shadow-float: 0 24px 80px rgba(38, 32, 24, 0.16);
+  --shadow-soft: 0 18px 54px rgba(50, 41, 28, 0.1);
+  --shadow-float: 0 28px 84px rgba(38, 32, 24, 0.15);
   --radius-sm: 0.85rem;
   --radius-md: 1.35rem;
   --radius-lg: 2rem;
   --space-page-x: clamp(1.1rem, 2vw, 2rem);
-  --space-page-y: clamp(1.2rem, 2vw, 2.5rem);
+  --space-page-y: clamp(1.2rem, 2vw, 2.7rem);
   --grid-color: rgba(98, 85, 62, 0.08);
   --ink-soft: rgba(31, 35, 31, 0.72);
   --ink-muted: rgba(31, 35, 31, 0.56);
@@ -40,6 +41,7 @@
   --color-surface: var(--surface);
   --color-surface-strong: var(--surface-strong);
   --color-surface-muted: var(--surface-muted);
+  --color-surface-elevated: var(--surface-elevated);
   --color-border-subtle: var(--border-subtle);
   --color-border-strong: var(--border-strong);
   --color-advisor-accent: var(--advisor-accent);

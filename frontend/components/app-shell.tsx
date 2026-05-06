@@ -26,7 +26,7 @@ export function AppShell({
     <div data-persona-theme={personaTheme} className="ambient-grid min-h-screen">
       <div className="page-inset">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-          <header className="paper-panel rounded-[var(--radius-lg)] px-6 py-7 md:px-8 md:py-8">
+          <header className="paper-panel soft-fade-in rounded-[var(--radius-lg)] px-6 py-7 md:px-8 md:py-8">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-2">
                 <p className="mono-caption text-[0.72rem] text-[var(--ink-muted)]">
@@ -49,7 +49,7 @@ export function AppShell({
             </p>
           </header>
           <main className="page-stack">{children}</main>
-          {footer ? <footer>{footer}</footer> : null}
+          {footer ? <footer className="soft-fade-in">{footer}</footer> : null}
         </div>
       </div>
     </div>

@@ -1,9 +1,12 @@
+import type { ReactNode } from "react";
+
 interface ErrorStateProps {
   title: string;
   description: string;
+  action?: ReactNode;
 }
 
-export function ErrorState({ title, description }: ErrorStateProps) {
+export function ErrorState({ title, description, action }: ErrorStateProps) {
   return (
     <div
       className="rounded-[var(--radius-sm)] px-5 py-6 text-sm"
@@ -14,6 +17,7 @@ export function ErrorState({ title, description }: ErrorStateProps) {
     >
       <p className="font-semibold text-[var(--blocker)]">{title}</p>
       <p className="mt-2 leading-6 text-[var(--blocker)]">{description}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { RefreshButton } from "@/components/refresh-button";
 import { SectionCard } from "@/components/section-card";
 import { StatusBadge } from "@/components/status-badge";
 import { ApiError } from "@/lib/api/client";
@@ -68,7 +69,11 @@ export function TaskInbox({
       action={<StatusBadge label={`${tasks.length} tasks`} tone="student" />}
     >
       {error_message ? (
-        <ErrorState title="Task inbox unavailable" description={error_message} />
+        <ErrorState
+          title="Task inbox unavailable"
+          description={error_message}
+          action={<RefreshButton label="Retry task fetch" tone="student" />}
+        />
       ) : null}
       {!error_message && inline_error ? (
         <div className="mb-4">

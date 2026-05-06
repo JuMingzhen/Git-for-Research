@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import type { DemoPersonaConfig } from "@/lib/types/demo";
 import { StatusBadge } from "@/components/status-badge";
+import type { DemoPersonaConfig } from "@/lib/types/demo";
 
 interface PersonaCardProps {
   persona: DemoPersonaConfig;
@@ -36,7 +36,8 @@ export function PersonaCard({ persona }: PersonaCardProps) {
         <p className="text-base leading-7 rich-copy">{persona.summary}</p>
         <p className="text-sm leading-6 muted-copy">{persona.focus}</p>
         <div className="pt-2 text-sm font-semibold text-[var(--persona-accent)] transition-transform duration-300 group-hover:translate-x-1">
-          Enter demo workspace →
+          Enter demo workspace -
+          &gt;
         </div>
       </div>
     </Link>
