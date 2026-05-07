@@ -1,19 +1,21 @@
-from gfr_backend.db.models.branch import BranchType, ResearchBranch
+from gfr_backend.db.models.line import LineType, ResearchLine
 from gfr_backend.db.models.meeting import Meeting
 from gfr_backend.db.models.meeting_task import MeetingTask
+from gfr_backend.db.models.node import NodeKind, ProgressNode, progress_node_parents
 from gfr_backend.db.models.project import Project
 from gfr_backend.db.models.team import Team
-from gfr_backend.db.models.update import ProgressUpdate
 from gfr_backend.db.models.user import User, UserRole
 
 __all__ = [
-    "BranchType",
+    "LineType",
     "Meeting",
     "MeetingTask",
+    "NodeKind",
     "Project",
-    "ProgressUpdate",
-    "ResearchBranch",
+    "ProgressNode",
+    "ResearchLine",
     "Team",
     "User",
     "UserRole",
+    "progress_node_parents",
 ]

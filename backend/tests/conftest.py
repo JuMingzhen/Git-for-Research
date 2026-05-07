@@ -1,4 +1,3 @@
-import os
 from collections.abc import Generator
 
 import pytest
@@ -6,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from gfr_backend.api.dependencies import (
     get_db_session,
@@ -17,7 +17,7 @@ from gfr_backend.db.models import Team, User, UserRole
 from gfr_backend.main import create_app
 from gfr_backend.services.retriever import StubRetrieverService
 
-TEST_DB_URL = "sqlite:///./test_step1.db"
+TEST_DB_URL = "sqlite://"
 
 
 class FakeLLMService:
@@ -28,30 +28,30 @@ class FakeLLMService:
     def summarize_progress(
         self,
         *,
-        updates: list[dict[str, str | None]],
-        branch_context: dict[str, str | int | None],
+        nodes: list[dict[str, str | None]],
+        line_context: dict[str, str | int | None],
     ) -> str:
-        latest = updates[-1]
-        return f"Summary for {branch_context['title']}: {latest['content']}"
+        latest = nodes[0]
+        return f"Summary for {line_context['title']}: {latest['content']}"
 
     def suggest_subbranches(
         self,
         *,
         update_text: str,
-        branch_context: dict[str, str | int | None],
+        line_context: dict[str, str | int | None],
     ) -> list[str]:
         return [
-            f"{branch_context['title']} - experiment follow-up",
-            f"{branch_context['title']} - analysis follow-up",
+            f"{line_context['title']} - experiment follow-up",
+            f"{line_context['title']} - analysis follow-up",
         ]
 
     def build_pre_meeting_brief(
         self,
         *,
         project_context: dict[str, str | int | None],
-        recent_updates: list[dict[str, str | int | None]],
+        recent_nodes: list[dict[str, str | int | None]],
     ) -> str:
-        return f"Briefing for {project_context['title']}: {len(recent_updates)} updates"
+        return f"Briefing for {project_context['title']}: {len(recent_nodes)} updates"
 
     def summarize_meeting(
         self,
@@ -69,13 +69,12 @@ class FakeLLMService:
     ) -> list[dict[str, str | int | None]]:
         tasks: list[dict[str, str | int | None]] = []
         for participant in participants:
-            if participant["branch_type"] != "personal":
+            if participant["role"] != "student":
                 continue
             tasks.append(
                 {
-                    "assignee_id": participant["owner_id"],
-                    "branch_id": participant["branch_id"],
-                    "description": f"Task for {participant['title']}: {meeting_summary}",
+                    "assignee_id": participant["user_id"],
+                    "description": f"Task for {participant['name']}: {meeting_summary}",
                     "due_hint": "before next meeting",
                 }
             )
@@ -94,13 +93,12 @@ def test_engine():
         TEST_DB_URL,
         future=True,
         connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
     engine.dispose()
-    if os.path.exists("test_step1.db"):
-        os.remove("test_step1.db")
 
 
 @pytest.fixture()
@@ -168,4 +166,25 @@ def seeded_users(raw_session: Session) -> dict[str, int]:
         "advisor_id": advisor.id,
         "student_a_id": student_a.id,
         "student_b_id": student_b.id,
+    }
+
+
+@pytest.fixture()
+def seeded_project(client: TestClient, seeded_users: dict[str, int]) -> dict[str, int]:
+    response = client.post(
+        "/projects",
+        json={
+            "title": "Graph Project",
+            "description": "Node-first test project.",
+            "owner_id": seeded_users["advisor_id"],
+        },
+    )
+    assert response.status_code == 201
+    payload = response.json()
+    return {
+        "project_id": payload["id"],
+        "main_line_id": payload["main_line_id"],
+        "advisor_id": seeded_users["advisor_id"],
+        "student_a_id": seeded_users["student_a_id"],
+        "student_b_id": seeded_users["student_b_id"],
     }
