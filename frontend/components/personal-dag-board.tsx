@@ -6,27 +6,23 @@ import type { BranchSummary } from "@/lib/types/api";
 interface PersonalDagBoardProps {
   root_branch_id: number;
   branches: BranchSummary[];
-}
-
-interface LayoutNode {
-  branch: BranchSummary;
-  x: number;
-  y: number;
+  selected_branch_id: number;
+  active_branch_id: number;
+  on_select_branch: (branch_id: number) => void;
 }
 
 export function PersonalDagBoard({
   root_branch_id,
   branches,
+  selected_branch_id,
+  active_branch_id,
+  on_select_branch,
 }: PersonalDagBoardProps) {
   if (branches.length === 0) {
     return (
-      <SectionCard
-        title="Personal Research DAG"
-        eyebrow="Branch Notebook"
-        description="This panel will visualize how your personal track splits and converges."
-      >
+      <SectionCard title="Branch Graph" eyebrow="Notebook">
         <p className="text-sm leading-6 muted-copy">
-          No branch structure is available for this student yet.
+          No branch structure is available yet.
         </p>
       </SectionCard>
     );
@@ -34,16 +30,7 @@ export function PersonalDagBoard({
 
   const sorted_branches = [...branches].sort((left, right) => left.id - right.id);
   const branch_map = new Map(sorted_branches.map((branch) => [branch.id, branch]));
-  const child_count_map = new Map<number, number>();
   const depth_map = new Map<number, number>();
-
-  for (const branch of sorted_branches) {
-    for (const parent_id of branch.parent_branch_ids) {
-      if (branch_map.has(parent_id)) {
-        child_count_map.set(parent_id, (child_count_map.get(parent_id) ?? 0) + 1);
-      }
-    }
-  }
 
   function get_depth(branch_id: number): number {
     const cached = depth_map.get(branch_id);
@@ -71,153 +58,90 @@ export function PersonalDagBoard({
     return depth;
   }
 
-  const columns = new Map<number, BranchSummary[]>();
-  for (const branch of sorted_branches) {
-    const depth = get_depth(branch.id);
-    const group = columns.get(depth) ?? [];
-    group.push(branch);
-    columns.set(depth, group);
-  }
-
-  const ordered_depths = [...columns.keys()].sort((left, right) => left - right);
-  const max_rows = Math.max(...ordered_depths.map((depth) => columns.get(depth)?.length ?? 0));
-  const layout_nodes = new Map<number, LayoutNode>();
-
-  ordered_depths.forEach((depth, column_index) => {
-    const column_branches = columns.get(depth) ?? [];
-    column_branches.forEach((branch, row_index) => {
-      const x = ((column_index + 0.5) / ordered_depths.length) * 100;
-      const y = ((row_index + 0.5) / max_rows) * 100;
-      layout_nodes.set(branch.id, { branch, x, y });
-    });
-  });
-
-  const connections = sorted_branches.flatMap((branch) =>
-    branch.parent_branch_ids
-      .filter((parent_id) => branch_map.has(parent_id))
-      .map((parent_id) => {
-        const parent = layout_nodes.get(parent_id);
-        const child = layout_nodes.get(branch.id);
-
-        if (!parent || !child) {
-          return null;
-        }
-
-        return { parent, child };
-      })
-      .filter((item): item is { parent: LayoutNode; child: LayoutNode } => item !== null),
-  );
-
-  const board_height = Math.max(22, max_rows * 9);
-
   return (
     <SectionCard
-      title="Personal Research DAG"
-      eyebrow="Branch Notebook"
-      description="This is the personal work graph, not a flat to-do list: side branches explore subproblems, and merge nodes record when threads come back together."
+      title="Branch Graph"
+      eyebrow="Notebook"
       action={<StatusBadge label={`${branches.length} nodes`} tone="student" />}
     >
-      <div className="rounded-[var(--radius-md)] border border-border-subtle bg-[linear-gradient(180deg,rgba(255,255,255,0.66),rgba(234,241,250,0.72))] p-4 md:p-6">
-        <div className="mb-5 flex flex-wrap gap-3 text-xs">
-          <StatusBadge label="personal trunk" tone="student" />
-          <StatusBadge label="sub-branch" tone="neutral" />
-          <StatusBadge label="merge milestone" tone="success" />
-        </div>
-        <div className="relative overflow-x-auto">
-          <div
-            className="relative min-w-[860px]"
-            style={{ minHeight: `${board_height}rem` }}
-          >
-            <svg
-              className="absolute inset-0 h-full w-full"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              {connections.map(({ parent, child }) => {
-                const control_x = (parent.x + child.x) / 2;
-                const path = `M ${parent.x} ${parent.y} C ${control_x} ${parent.y}, ${control_x} ${child.y}, ${child.x} ${child.y}`;
-                const is_merge = child.branch.parent_branch_ids.length > 1;
+      <div className="space-y-2">
+        {sorted_branches.map((branch, index) => {
+          const depth = get_depth(branch.id);
+          const is_selected = branch.id === selected_branch_id;
+          const is_active = branch.id === active_branch_id;
+          const is_root = branch.id === root_branch_id;
+          const is_merge = branch.parent_branch_ids.length > 1;
 
-                return (
-                  <path
-                    key={`${parent.branch.id}-${child.branch.id}`}
-                    d={path}
-                    fill="none"
-                    stroke={is_merge ? "rgba(189, 115, 67, 0.75)" : "rgba(47, 92, 151, 0.38)"}
-                    strokeWidth={is_merge ? 0.44 : 0.32}
-                    strokeDasharray={is_merge ? "0" : "1.2 0.8"}
-                    strokeLinecap="round"
+          const dot_color = is_merge
+            ? "var(--terracotta)"
+            : branch.branch_type === "personal"
+              ? "var(--student-accent)"
+              : "var(--brass)";
+          const dot_style = is_selected
+            ? { boxShadow: `0 0 0 4px rgba(45, 79, 132, 0.14)` }
+            : undefined;
+
+          return (
+            <button
+              key={branch.id}
+              type="button"
+              onClick={() => on_select_branch(branch.id)}
+              className={[
+                "group flex w-full items-start gap-4 rounded-[var(--radius-sm)] px-3 py-3 text-left transition",
+                is_selected
+                  ? "bg-[var(--surface-elevated)] shadow-[var(--shadow-soft)]"
+                  : "hover:bg-white/50",
+              ].join(" ")}
+              style={{ paddingLeft: `${0.85 + depth * 1.2}rem` }}
+            >
+              <div className="relative flex min-h-8 flex-col items-center pt-1">
+                {index < sorted_branches.length - 1 ? (
+                  <span
+                    className="absolute left-1/2 top-4 h-[calc(100%+1.25rem)] w-px -translate-x-1/2"
+                    style={{ backgroundColor: "rgba(77, 71, 58, 0.16)" }}
                   />
-                );
-              })}
-            </svg>
-            <div
-              className="relative grid gap-6"
-              style={{
-                gridTemplateColumns: `repeat(${ordered_depths.length}, minmax(0, 1fr))`,
-                minHeight: `${board_height}rem`,
-              }}
-            >
-              {ordered_depths.map((depth) => {
-                const column_branches = columns.get(depth) ?? [];
-
-                return (
-                  <div
-                    key={depth}
-                    className="flex flex-col gap-5"
-                    style={{
-                      paddingTop: "0.5rem",
-                      justifyContent: max_rows > 1 ? "space-around" : "flex-start",
-                    }}
-                  >
-                    {column_branches.map((branch) => {
-                      const is_merge = branch.parent_branch_ids.length > 1;
-                      const is_root = branch.id === root_branch_id;
-
-                      return (
-                        <article
-                          key={branch.id}
-                          className="relative rounded-[var(--radius-sm)] border border-border-subtle bg-white/82 p-4 shadow-[var(--shadow-soft)]"
-                        >
-                          <div className="mb-3 flex items-start justify-between gap-3">
-                            <StatusBadge
-                              label={is_root ? "personal" : branch.branch_type}
-                              tone={is_root ? "student" : is_merge ? "success" : "neutral"}
-                            />
-                            {is_merge ? <StatusBadge label="merge" tone="success" /> : null}
-                          </div>
-                          <h3 className="text-base font-semibold text-foreground">
-                            {branch.title}
-                          </h3>
-                          <p className="mt-3 text-sm leading-6 rich-copy">
-                            {truncate_text(
-                              branch.goal ?? "No written goal captured for this branch yet.",
-                              100,
-                            )}
-                          </p>
-                          <div className="mt-4 flex flex-wrap gap-2 text-[0.72rem] text-[var(--ink-muted)]">
-                            <span className="glass-chip rounded-full px-2.5 py-1">
-                              node #{branch.id}
-                            </span>
-                            <span className="glass-chip rounded-full px-2.5 py-1">
-                              {child_count_map.get(branch.id) ?? 0} children
-                            </span>
-                            {branch.parent_branch_ids.length > 1 ? (
-                              <span className="glass-chip rounded-full px-2.5 py-1">
-                                {branch.parent_branch_ids.length} parents
-                              </span>
-                            ) : null}
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+                ) : null}
+                <span
+                  className={[
+                    "relative z-10 block h-4 w-4 rounded-full border-2 bg-[var(--surface-strong)]",
+                    is_merge ? "ring-2 ring-[var(--terracotta-soft)]" : "",
+                  ].join(" ")}
+                  style={{
+                    borderColor: dot_color,
+                    backgroundColor: is_root ? dot_color : "var(--surface-strong)",
+                    ...dot_style,
+                  }}
+                />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground md:text-base">
+                    {branch.title}
+                  </h3>
+                  {is_active ? <StatusBadge label="current" tone="student" /> : null}
+                  {is_merge ? <StatusBadge label="merge" tone="success" /> : null}
+                  {is_root ? <StatusBadge label="trunk" tone="student" /> : null}
+                </div>
+                <p className="text-sm leading-6 muted-copy">
+                  {truncate_text(
+                    branch.goal ?? "No goal written for this branch.",
+                    82,
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-2 text-[0.72rem] text-[var(--ink-muted)]">
+                  <span className="glass-chip rounded-full px-2.5 py-1">
+                    #{branch.id}
+                  </span>
+                  {branch.parent_branch_ids.length > 0 ? (
+                    <span className="glass-chip rounded-full px-2.5 py-1">
+                      from {branch.parent_branch_ids.join(", ")}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </SectionCard>
   );

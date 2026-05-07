@@ -96,6 +96,15 @@ export interface UpdateTaskRequest {
   status: string;
 }
 
+export interface CreateBranchRequest {
+  project_id: number;
+  parent_branch_ids: number[];
+  owner_id: number;
+  title: string;
+  goal: string | null;
+  branch_type: "personal" | "sub";
+}
+
 export interface ApiErrorEnvelope {
   error: {
     code: string;

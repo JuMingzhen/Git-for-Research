@@ -5,21 +5,37 @@ import { format_long_date } from "@/lib/format";
 import type { UpdateResponse } from "@/lib/types/api";
 
 interface UpdateTimelineProps {
+  branch_title: string;
   updates: UpdateResponse[];
+  is_loading?: boolean;
+  error_message?: string;
 }
 
-export function UpdateTimeline({ updates }: UpdateTimelineProps) {
+export function UpdateTimeline({
+  branch_title,
+  updates,
+  is_loading = false,
+  error_message,
+}: UpdateTimelineProps) {
   return (
     <SectionCard
-      title="Recent Update Timeline"
-      eyebrow="Progress Log"
-      description="A readable sequence of what this branch has reported, where it got stuck, and what it planned next."
+      title="Update Timeline"
+      eyebrow="Progress"
+      description={branch_title}
       action={<StatusBadge label={`${updates.length} updates`} tone="student" />}
     >
-      {updates.length === 0 ? (
+      {is_loading ? (
+        <div className="rounded-[var(--radius-sm)] border border-border-subtle bg-white/55 px-4 py-4 text-sm leading-6 muted-copy">
+          Loading updates...
+        </div>
+      ) : error_message ? (
+        <div className="rounded-[var(--radius-sm)] bg-[var(--warning-soft)] px-4 py-4 text-sm leading-6 text-[var(--warning)]">
+          {error_message}
+        </div>
+      ) : updates.length === 0 ? (
         <EmptyState
-          title="No updates recorded yet"
-          description="The first progress note submitted from this student will start the branch timeline here."
+          title="No updates yet"
+          description="Submit the first update on this branch."
         />
       ) : (
         <div className="space-y-5">
@@ -83,7 +99,7 @@ export function UpdateTimeline({ updates }: UpdateTimelineProps) {
                   </p>
                   {update.ai_status === "failed" ? (
                     <div className="mt-4 rounded-[var(--radius-sm)] bg-[var(--warning-soft)] px-3 py-3 text-sm leading-6 text-[var(--warning)]">
-                      AI enrichment failed for this entry, but the original update remains visible and saved.
+                      AI summary failed, but the update was saved.
                     </div>
                   ) : null}
                 </div>

@@ -11,6 +11,7 @@ import type { UpdateResponse } from "@/lib/types/api";
 
 interface UpdateComposerProps {
   branch_id: number;
+  branch_title: string;
   author_id: number;
   display_name: string;
   on_update_created: (update: UpdateResponse) => void;
@@ -18,6 +19,7 @@ interface UpdateComposerProps {
 
 export function UpdateComposer({
   branch_id,
+  branch_title,
   author_id,
   display_name,
   on_update_created,
@@ -55,7 +57,7 @@ export function UpdateComposer({
         });
         on_update_created(created);
         reset_form();
-        setSuccessMessage(`${display_name}'s update was saved and added to the timeline.`);
+        setSuccessMessage(`${display_name}'s update was saved.`);
       } catch (error) {
         if (error instanceof ApiError) {
           setErrorMessage(error.message);
@@ -68,10 +70,10 @@ export function UpdateComposer({
 
   return (
     <SectionCard
-      title="Update Composer"
-      eyebrow="Write Progress"
-      description="Record one real milestone, one blocker, and one next step. The goal is to keep the branch notebook current without making the student fill in a giant form."
-      action={<StatusBadge label="POST /updates" tone="student" />}
+      title="Submit Update"
+      eyebrow="Current Branch"
+      description={branch_title}
+      action={<StatusBadge label={`#${branch_id}`} tone="student" />}
     >
       {error_message ? (
         <div className="mb-4">
@@ -84,6 +86,9 @@ export function UpdateComposer({
         </div>
       ) : null}
       <div className="grid gap-4">
+        <div className="rounded-[var(--radius-sm)] border border-border-subtle bg-white/56 px-4 py-3 text-sm leading-6 muted-copy">
+          Current branch: <span className="font-semibold text-foreground">{branch_title}</span>
+        </div>
         <div>
           <label
             htmlFor="update-content"

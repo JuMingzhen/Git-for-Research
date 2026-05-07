@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api/client";
 import type {
+  CreateBranchRequest,
   BranchSummary,
   CreateUpdateRequest,
   UpdateResponse,
@@ -11,6 +12,13 @@ export function get_branch(branch_id: number) {
 
 export function get_branch_updates(branch_id: number) {
   return apiFetch<UpdateResponse[]>(`/branches/${branch_id}/updates`);
+}
+
+export function create_branch(payload: CreateBranchRequest) {
+  return apiFetch<BranchSummary>("/branches", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function create_update(payload: CreateUpdateRequest) {

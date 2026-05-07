@@ -64,8 +64,8 @@ export function TaskInbox({
   return (
     <SectionCard
       title="Task Inbox"
-      eyebrow="Meeting Reflux"
-      description="Tasks routed back from meetings land here as the student's working inbox."
+      eyebrow="Tasks"
+      description="Tasks for this branch and student."
       action={<StatusBadge label={`${tasks.length} tasks`} tone="student" />}
     >
       {error_message ? (
@@ -82,8 +82,8 @@ export function TaskInbox({
       ) : null}
       {!error_message && tasks.length === 0 ? (
         <EmptyState
-          title="No tasks routed here yet"
-          description="Once meetings split actions back into student branches, this inbox will become the main operational queue."
+          title="No tasks yet"
+          description="New meeting tasks will appear here."
         />
       ) : null}
       {!error_message && tasks.length > 0 ? (

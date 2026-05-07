@@ -54,8 +54,8 @@ export default async function AdvisorProjectPage({
     <AppShell
       personaTheme="advisor"
       eyebrow={`Advisor Workspace / Project ${projectId}`}
-      title="A war-room view of branch structure, meeting closure, and project memory."
-      description="This page is designed to let an advisor rebuild context quickly: understand the project DAG, inspect meeting outputs, see tasks flowing back into student tracks, and query history without rereading everything."
+      title="Advisor workspace"
+      description="Scan the project graph, meetings, tasks, and history."
       badgeLabel="Advisor"
       footer={<WorkspaceNav current_persona="advisor" />}
     >

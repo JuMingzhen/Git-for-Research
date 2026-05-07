@@ -24,7 +24,7 @@ export function StudentHero({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-2">
               <p className="mono-caption text-[0.72rem] text-[var(--ink-muted)]">
-                Student Hero
+                Student
               </p>
               <h2 className="display-title text-4xl font-medium leading-tight text-foreground md:text-5xl">
                 {display_name}
@@ -34,11 +34,11 @@ export function StudentHero({
           </div>
           <div className="space-y-3">
             <p className="mono-caption text-[0.68rem] text-[var(--ink-muted)]">
-              Current personal branch
+              Current branch
             </p>
             <h3 className="text-2xl font-semibold text-foreground">{branch.title}</h3>
             <p className="max-w-3xl text-base leading-7 rich-copy md:text-lg">
-              {branch.goal ?? "No current branch goal has been written yet."}
+              {branch.goal ?? "No goal yet."}
             </p>
           </div>
         </div>
@@ -51,7 +51,7 @@ export function StudentHero({
               {open_tasks.length}
             </p>
             <p className="mt-2 text-sm leading-6 muted-copy">
-              Meeting tasks still waiting for progress on this branch.
+              Tasks still open.
             </p>
           </div>
           <div className="rounded-[var(--radius-sm)] border border-border-subtle bg-white/52 p-4">
@@ -59,7 +59,7 @@ export function StudentHero({
               Latest blocker
             </p>
             <p className="mt-3 text-sm leading-6 rich-copy">
-              {latest_update?.blockers ?? "No blocker recorded in the latest visible update."}
+              {latest_update?.blockers ?? "No blocker recorded."}
             </p>
           </div>
           <div className="rounded-[var(--radius-sm)] border border-border-subtle bg-white/52 p-4">
@@ -67,7 +67,7 @@ export function StudentHero({
               Next step
             </p>
             <p className="mt-3 text-sm leading-6 rich-copy">
-              {latest_update?.next_step ?? "No explicit next step has been captured yet."}
+              {latest_update?.next_step ?? "No next step recorded."}
             </p>
           </div>
         </div>

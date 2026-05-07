@@ -11,16 +11,16 @@ export default function DemoPage() {
     <AppShell
       personaTheme="advisor"
       eyebrow="Git for Research"
-      title="A research collaboration demo built around branch structure, meeting closure, and historical recall."
-      description="This first frontend batch sets the product atmosphere and the role entry points. The goal is to make the demo feel like a real research workspace before we wire in the heavier data panels."
+      title="Choose a workspace"
+      description="Open the advisor view or a student branch workspace."
       badgeLabel="Demo Entry"
       footer={<WorkspaceNav />}
     >
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <SectionCard
-          title="Choose a demo workspace"
-          eyebrow="Role Split"
-          description="Skip login for the demo, but keep role boundaries visually explicit so the advisor and student experiences can diverge cleanly."
+          title="Workspaces"
+          eyebrow="Role"
+          description="Pick a role and enter."
         >
           <div className="grid gap-5 md:grid-cols-3">
             {DEMO_PERSONAS.map((persona) => (
@@ -29,9 +29,9 @@ export default function DemoPage() {
           </div>
         </SectionCard>
         <SectionCard
-          title="What this demo should prove"
-          eyebrow="Value Lens"
-          description="The product matters if it makes research coordination visible without forcing people to manually reconstruct context every week."
+          title="Why it matters"
+          eyebrow="Value"
+          description="The demo shows branch structure, meeting closure, and traceable history."
         >
           <div className="space-y-4">
             {demoHighlights.map((item, index) => (
@@ -51,15 +51,15 @@ export default function DemoPage() {
         </SectionCard>
       </section>
       <SectionCard
-        title="Suggested demo route"
-        eyebrow="3 Minute Flow"
-        description="The cleanest presentation path is one closed loop: orient the audience in the advisor room, drop into one student's branch notebook, then come back to project memory."
+        title="Suggested flow"
+        eyebrow="Demo"
+        description="A short path that shows the full loop."
       >
         <div className="grid gap-4 lg:grid-cols-3">
           {[
-            "1. Start in Advisor to explain the project DAG, recent meeting cycle, and task reflux.",
-            "2. Open Student A to show one personal branch notebook, update timeline, and task inbox.",
-            "3. Return to Advisor and use History QA to show that project memory stays queryable.",
+            "1. Open Advisor and scan the project graph, meetings, and tasks.",
+            "2. Open Student A and show the current branch, updates, and task inbox.",
+            "3. Return to Advisor and ask a history question with citations.",
           ].map((item, index) => (
             <article
               key={item}
