@@ -2,7 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from gfr_backend.db.models.branch import BranchType, ResearchBranch
+from gfr_backend.db.models.line import LineType, ResearchLine
+from gfr_backend.db.models.node import NodeKind, ProgressNode
 from gfr_backend.db.models.project import Project
 from gfr_backend.db.models.user import User, UserRole
 
@@ -26,27 +27,42 @@ def create_project(
             detail="Only advisor users can create projects.",
         )
 
-    project = Project(
-        title=title,
-        description=description,
-        owner_id=owner_id,
-    )
+    project = Project(title=title, description=description, owner_id=owner_id)
     session.add(project)
     session.flush()
 
-    main_branch = ResearchBranch(
+    main_line = ResearchLine(
         project_id=project.id,
         owner_id=owner_id,
-        title="Main Branch",
+        title="Main Line",
         goal=f"Primary research track for {title}",
-        branch_type=BranchType.main,
+        line_type=LineType.main,
     )
-    session.add(main_branch)
+    session.add(main_line)
     session.flush()
 
-    project.main_branch_id = main_branch.id
-    session.commit()
+    root_node = ProgressNode(
+        project_id=project.id,
+        line_id=main_line.id,
+        author_id=owner_id,
+        title="Project initialized",
+        content=f"Project {title} initialized.",
+        blockers=None,
+        next_step=None,
+        node_kind=NodeKind.initial,
+        ai_suggested_subbranches=[],
+        ai_status="completed",
+        ai_summary="Initial project node created.",
+        ai_error=None,
+    )
+    session.add(root_node)
+    session.flush()
 
+    main_line.base_node_id = root_node.id
+    main_line.head_node_id = root_node.id
+    project.main_line_id = main_line.id
+
+    session.commit()
     return get_project_or_404(session, project.id)
 
 
@@ -54,8 +70,9 @@ def get_project_or_404(session: Session, project_id: int) -> Project:
     statement = (
         select(Project)
         .options(
-            selectinload(Project.branches).selectinload(ResearchBranch.parent_branches),
-            selectinload(Project.branches).selectinload(ResearchBranch.owner),
+            selectinload(Project.lines).selectinload(ResearchLine.owner),
+            selectinload(Project.lines).selectinload(ResearchLine.parent_line),
+            selectinload(Project.main_line),
         )
         .where(Project.id == project_id)
     )
@@ -66,3 +83,8 @@ def get_project_or_404(session: Session, project_id: int) -> Project:
             detail=f"Project {project_id} was not found.",
         )
     return project
+
+
+def list_project_lines(session: Session, project_id: int) -> list[ResearchLine]:
+    project = get_project_or_404(session, project_id)
+    return sorted(project.lines, key=lambda line: line.id)

@@ -6,8 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from gfr_backend.db.models.meeting import Meeting
+from gfr_backend.db.models.node import ProgressNode
 from gfr_backend.db.models.project import Project
-from gfr_backend.db.models.update import ProgressUpdate
 
 STOPWORDS = {
     "a",
@@ -65,7 +65,7 @@ class StubRetrieverService:
         tokens = _tokenize(question)
         if not tokens:
             return []
-        minimum_score = 1 if len(tokens) == 1 else 2
+        minimum_score = 1 if len(tokens) <= 2 else 2
 
         chunks: list[RetrievedChunk] = []
         project = session.get(Project, project_id)
@@ -88,17 +88,14 @@ class StubRetrieverService:
                         )
                     )
 
-        update_statement = (
-            select(ProgressUpdate)
-            .join(ProgressUpdate.branch)
-            .where(ProgressUpdate.branch.has(project_id=project_id))
-        )
-        for update in session.execute(update_statement).scalars():
+        node_statement = select(ProgressNode).where(ProgressNode.project_id == project_id)
+        for node in session.execute(node_statement).scalars():
             for candidate_text in [
-                update.content,
-                update.blockers,
-                update.next_step,
-                update.ai_summary,
+                node.title,
+                node.content,
+                node.blockers,
+                node.next_step,
+                node.ai_summary,
             ]:
                 if not candidate_text:
                     continue
@@ -106,8 +103,8 @@ class StubRetrieverService:
                 if score >= minimum_score:
                     chunks.append(
                         RetrievedChunk(
-                            source_type="progress_update",
-                            source_id=update.id,
+                            source_type="progress_node",
+                            source_id=node.id,
                             text=candidate_text,
                             score=score,
                         )
@@ -121,7 +118,7 @@ def _tokenize(text: str) -> list[str]:
     return [
         token
         for token in re.findall(r"\w+", text.lower())
-        if len(token) >= 2 and token not in STOPWORDS
+        if len(token) >= 3 and token not in STOPWORDS
     ]
 
 

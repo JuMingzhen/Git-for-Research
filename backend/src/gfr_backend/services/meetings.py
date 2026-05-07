@@ -2,10 +2,12 @@ from fastapi import HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
+from gfr_backend.db.models.line import LineType, ResearchLine
 from gfr_backend.db.models.meeting import Meeting
 from gfr_backend.db.models.meeting_task import MeetingTask
+from gfr_backend.db.models.node import ProgressNode
 from gfr_backend.db.models.project import Project
-from gfr_backend.db.models.update import ProgressUpdate
+from gfr_backend.db.models.user import UserRole
 from gfr_backend.services.llm import LLMService
 
 
@@ -40,7 +42,7 @@ def get_meeting_or_404(session: Session, meeting_id: int) -> Meeting:
         select(Meeting)
         .options(
             selectinload(Meeting.tasks).selectinload(MeetingTask.assignee),
-            selectinload(Meeting.tasks).selectinload(MeetingTask.branch),
+            selectinload(Meeting.tasks).selectinload(MeetingTask.project),
         )
         .where(Meeting.id == meeting_id)
     )
@@ -54,12 +56,12 @@ def get_meeting_or_404(session: Session, meeting_id: int) -> Meeting:
 
 
 def list_project_meetings(session: Session, project_id: int) -> list[Meeting]:
-    _get_project_with_branches(session, project_id)
+    _get_project_with_lines(session, project_id)
     statement = (
         select(Meeting)
         .options(
             selectinload(Meeting.tasks).selectinload(MeetingTask.assignee),
-            selectinload(Meeting.tasks).selectinload(MeetingTask.branch),
+            selectinload(Meeting.tasks).selectinload(MeetingTask.project),
         )
         .where(Meeting.project_id == project_id)
         .order_by(Meeting.created_at.desc(), Meeting.id.desc())
@@ -68,16 +70,15 @@ def list_project_meetings(session: Session, project_id: int) -> list[Meeting]:
 
 
 def list_project_tasks(session: Session, project_id: int) -> list[MeetingTask]:
-    _get_project_with_branches(session, project_id)
+    _get_project_with_lines(session, project_id)
     statement = (
         select(MeetingTask)
-        .join(MeetingTask.meeting)
         .options(
             selectinload(MeetingTask.assignee),
-            selectinload(MeetingTask.branch),
             selectinload(MeetingTask.meeting),
+            selectinload(MeetingTask.project),
         )
-        .where(Meeting.project_id == project_id)
+        .where(MeetingTask.project_id == project_id)
         .order_by(MeetingTask.created_at.desc(), MeetingTask.id.desc())
     )
     return list(session.execute(statement).scalars().all())
@@ -107,8 +108,8 @@ def get_meeting_task_or_404(session: Session, task_id: int) -> MeetingTask:
         select(MeetingTask)
         .options(
             selectinload(MeetingTask.assignee),
-            selectinload(MeetingTask.branch),
             selectinload(MeetingTask.meeting),
+            selectinload(MeetingTask.project),
         )
         .where(MeetingTask.id == task_id)
     )
@@ -128,27 +129,28 @@ def build_meeting_briefing(
     meeting_id: int,
 ) -> Meeting:
     meeting = get_meeting_or_404(session, meeting_id)
-    project = _get_project_with_branches(session, meeting.project_id)
-    recent_updates = _list_project_updates(session, meeting.project_id)
+    project = _get_project_with_lines(session, meeting.project_id)
+    recent_nodes = _list_project_nodes(session, meeting.project_id)
     project_context = {
         "project_id": project.id,
         "title": project.title,
         "description": project.description,
-        "branch_count": len(project.branches),
+        "line_count": len(project.lines),
     }
 
     try:
         meeting.ai_briefing = llm_service.build_pre_meeting_brief(
             project_context=project_context,
-            recent_updates=[
+            recent_nodes=[
                 {
-                    "branch_id": update.branch_id,
-                    "author_id": update.author_id,
-                    "content": update.content,
-                    "blockers": update.blockers,
-                    "next_step": update.next_step,
+                    "line_id": node.line_id,
+                    "author_id": node.author_id,
+                    "title": node.title,
+                    "content": node.content,
+                    "blockers": node.blockers,
+                    "next_step": node.next_step,
                 }
-                for update in recent_updates
+                for node in recent_nodes
             ],
         )
         meeting.briefing_status = "completed"
@@ -168,7 +170,7 @@ def summarize_meeting_notes(
     meeting_id: int,
 ) -> Meeting:
     meeting = get_meeting_or_404(session, meeting_id)
-    project = _get_project_with_branches(session, meeting.project_id)
+    project = _get_project_with_lines(session, meeting.project_id)
     project_context = {
         "project_id": project.id,
         "title": project.title,
@@ -197,16 +199,8 @@ def split_meeting_tasks(
     meeting_id: int,
 ) -> Meeting:
     meeting = get_meeting_or_404(session, meeting_id)
-    project = _get_project_with_branches(session, meeting.project_id)
-    participants = [
-        {
-            "branch_id": branch.id,
-            "owner_id": branch.owner_id,
-            "title": branch.title,
-            "branch_type": branch.branch_type.value,
-        }
-        for branch in project.branches
-    ]
+    project = _get_project_with_lines(session, meeting.project_id)
+    participants = _build_task_participants(project)
 
     try:
         generated_tasks = llm_service.extract_meeting_tasks(
@@ -236,33 +230,33 @@ def _replace_meeting_tasks(
     project: Project,
     generated_tasks: list[dict[str, str | int | None]],
 ) -> None:
-    branch_map = {branch.id: branch for branch in project.branches}
-
+    participant_map = {
+        participant["user_id"]: participant for participant in _build_task_participants(project)
+    }
     validated_tasks: list[MeetingTask] = []
+
     for generated in generated_tasks:
-        branch_id = generated.get("branch_id")
         assignee_id = generated.get("assignee_id")
         description = generated.get("description")
         due_hint = generated.get("due_hint")
 
-        if not isinstance(branch_id, int) or not isinstance(assignee_id, int):
-            raise ValueError("Generated task is missing a valid branch_id or assignee_id.")
+        if not isinstance(assignee_id, int):
+            raise ValueError("Generated task is missing a valid assignee_id.")
         if not isinstance(description, str) or not description.strip():
             raise ValueError("Generated task is missing a valid description.")
 
-        branch = branch_map.get(branch_id)
-        if branch is None:
-            raise ValueError("Generated task branch does not belong to the meeting project.")
-        if branch.owner_id != assignee_id:
-            raise ValueError("Generated task assignee must match the target branch owner.")
+        participant = participant_map.get(assignee_id)
+        if participant is None:
+            raise ValueError("Generated task assignee does not belong to the project participants.")
 
         validated_tasks.append(
             MeetingTask(
                 meeting_id=meeting.id,
+                project_id=project.id,
                 assignee_id=assignee_id,
-                branch_id=branch_id,
-                description=description,
-                due_hint=due_hint if isinstance(due_hint, str) else None,
+                assignee_name_snapshot=str(participant["name"]),
+                description=description.strip(),
+                due_hint=due_hint if isinstance(due_hint, str) and due_hint.strip() else None,
             )
         )
 
@@ -271,10 +265,10 @@ def _replace_meeting_tasks(
         session.add(task)
 
 
-def _get_project_with_branches(session: Session, project_id: int) -> Project:
+def _get_project_with_lines(session: Session, project_id: int) -> Project:
     statement = (
         select(Project)
-        .options(selectinload(Project.branches))
+        .options(selectinload(Project.lines).selectinload(ResearchLine.owner))
         .where(Project.id == project_id)
     )
     project = session.execute(statement).scalar_one_or_none()
@@ -286,11 +280,33 @@ def _get_project_with_branches(session: Session, project_id: int) -> Project:
     return project
 
 
-def _list_project_updates(session: Session, project_id: int) -> list[ProgressUpdate]:
+def _list_project_nodes(session: Session, project_id: int) -> list[ProgressNode]:
     statement = (
-        select(ProgressUpdate)
-        .join(ProgressUpdate.branch)
-        .where(ProgressUpdate.branch.has(project_id=project_id))
-        .order_by(ProgressUpdate.created_at.desc(), ProgressUpdate.id.desc())
+        select(ProgressNode)
+        .where(ProgressNode.project_id == project_id)
+        .order_by(ProgressNode.created_at.desc(), ProgressNode.id.desc())
     )
     return list(session.execute(statement).scalars().all())
+
+
+def _build_task_participants(project: Project) -> list[dict[str, str | int | None]]:
+    seen_user_ids: set[int] = set()
+    participants: list[dict[str, str | int | None]] = []
+    for line in project.lines:
+        if line.line_type != LineType.personal:
+            continue
+        if line.owner_id in seen_user_ids:
+            continue
+        seen_user_ids.add(line.owner_id)
+        participants.append(
+            {
+                "user_id": line.owner_id,
+                "name": line.owner.name,
+                "role": (
+                    line.owner.role.value
+                    if isinstance(line.owner.role, UserRole)
+                    else str(line.owner.role)
+                ),
+            }
+        )
+    return participants

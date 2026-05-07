@@ -11,8 +11,9 @@ class MeetingTask(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     meeting_id: Mapped[int] = mapped_column(ForeignKey("meetings.id"), nullable=False)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
     assignee_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    branch_id: Mapped[int] = mapped_column(ForeignKey("research_branches.id"), nullable=False)
+    assignee_name_snapshot: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     due_hint: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="todo", nullable=False)
@@ -23,5 +24,5 @@ class MeetingTask(Base):
     )
 
     meeting = relationship("Meeting", back_populates="tasks")
+    project = relationship("Project")
     assignee = relationship("User")
-    branch = relationship("ResearchBranch")

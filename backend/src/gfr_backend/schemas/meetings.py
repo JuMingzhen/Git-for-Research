@@ -13,10 +13,9 @@ class CreateMeetingRequest(BaseModel):
 class MeetingTaskResponse(BaseModel):
     id: int
     meeting_id: int
+    project_id: int
     assignee_id: int
     assignee_name: str
-    branch_id: int
-    branch_title: str
     description: str
     due_hint: str | None
     status: str
