@@ -1,52 +1,13 @@
 # API Contract
 
-## MVP Freeze
-
-This document is now the frozen MVP v1 backend contract for frontend
-integration. During the current frontend integration window:
-
-- do not rename response fields casually
-- do not switch payloads to camelCase
-- do not change list ordering semantics without updating this file and tests
-- do not change status-string meanings without updating this file and tests
-
-This document records the backend API surface that is currently implemented.
-It is the contract frontend and backend work should follow unless we explicitly
-change an endpoint in a later phase.
+This document records the current line/node backend contract.
 
 ## Base Rules
 
 - Base URL: backend service root
 - Content type: `application/json`
-- Success responses use route-specific JSON bodies
-- Errors use one shared envelope
 - All request and response fields use `snake_case`
-- Identifier fields use `*_id`
-- Timestamps are ISO-8601 datetime strings
-
-## Stable Naming And Ordering Rules
-
-- `branches` in project responses are ordered by ascending `id`
-- `parent_branch_ids` in branch responses are ordered by ascending `id`
-- `child_branch_ids` in branch detail responses are ordered by ascending `id`
-- `GET /projects/{project_id}/meetings` returns newest-first ordering
-- `GET /projects/{project_id}/tasks` returns newest-first ordering
-- `tasks` in meeting responses are ordered by ascending `id`
-- `GET /branches/{branch_id}/updates` returns newest-first ordering
-- `citations` in QA responses are returned in retrieval ranking order
-- Update AI state uses:
-  - `ai_summary`
-  - `ai_suggested_subbranches`
-  - `ai_status`
-  - `ai_error`
-- Meeting AI state uses per-step fields:
-  - `ai_briefing` with `briefing_status` and `briefing_error`
-  - `ai_summary` with `summary_status` and `summary_error`
-  - `tasks` with `task_split_status` and `task_split_error`
-
-## Error Format
-
-All handled errors return:
+- Errors use the shared envelope:
 
 ```json
 {
@@ -58,34 +19,33 @@ All handled errors return:
 }
 ```
 
-### Error Codes In Use
+## Core Semantics
 
-- `http_error`
-  - Used for handled HTTP exceptions such as `400` and `404`
-- `validation_error`
-  - Used for request validation failures with `422`
-- `internal_error`
-  - Used for unexpected server errors with `500`
+- `Project` is the repo-like container
+- `ResearchLine` is the working line, similar to a Git branch
+- `ProgressNode` is the real DAG node, similar to a Git commit
+- A normal update creates a node with one parent
+- A merge update creates a node with multiple parents
+- Meeting tasks are generic project task prompts and do not belong to any line
+
+## Stable Ordering Rules
+
+- `lines` in project responses are ordered by ascending `id`
+- `GET /projects/{project_id}/meetings` returns newest first
+- `GET /projects/{project_id}/tasks` returns newest first
+- `GET /lines/{line_id}/nodes` returns newest first
+- `GET /projects/{project_id}/graph` returns nodes ordered by ascending `id`
+- graph `edges` are ordered by `(parent_node_id, child_node_id)`
 
 ## Health Endpoints
 
 ### `GET /health`
 
-- Purpose: lightweight liveness check
-
-Response `200`:
-
 ```json
-{
-  "status": "ok"
-}
+{"status": "ok"}
 ```
 
 ### `GET /ready`
-
-- Purpose: readiness check for database and injected services
-
-Response `200`:
 
 ```json
 {
@@ -100,286 +60,235 @@ Response `200`:
 
 ### `POST /projects`
 
-- Purpose: create a project and automatically create its main branch
+Creates:
+- one project
+- one `main` line
+- one root `initial` node
 
-Request body:
+Request:
 
 ```json
 {
-  "title": "Multimodal Research Assistant",
-  "description": "Phase 1 MVP project.",
+  "title": "Graph Research Project",
+  "description": "Node-first backend.",
   "owner_id": 1
 }
 ```
 
-Response `201`:
+Response shape:
 
 ```json
 {
   "id": 1,
-  "title": "Multimodal Research Assistant",
-  "description": "Phase 1 MVP project.",
+  "title": "Graph Research Project",
+  "description": "Node-first backend.",
   "owner_id": 1,
   "status": "active",
-  "main_branch_id": 1,
-  "branches": [
+  "main_line_id": 1,
+  "lines": [
     {
       "id": 1,
       "project_id": 1,
-      "parent_branch_ids": [],
       "owner_id": 1,
       "owner_name": "Advisor A",
-      "title": "Main Branch",
-      "goal": "Primary research track for Multimodal Research Assistant",
+      "title": "Main Line",
+      "goal": "Primary research track for Graph Research Project",
+      "line_type": "main",
+      "parent_line_id": null,
+      "base_node_id": 1,
+      "head_node_id": 1,
       "status": "active",
-      "branch_type": "main",
-      "created_at": "2026-05-02T12:00:00"
+      "created_at": "2026-05-07T12:00:00"
     }
   ]
 }
 ```
 
-Common errors:
-
-- `400` when `owner_id` is not an advisor
-- `404` when `owner_id` does not exist
-
 ### `GET /projects/{project_id}`
 
-- Purpose: fetch one project with its current branches
+Returns the same shape as `POST /projects`.
 
-Response `200`: same shape as `POST /projects`
+### `GET /projects/{project_id}/lines`
 
-Common errors:
-
-- `404` when `project_id` does not exist
-
-### `GET /projects/{project_id}/meetings`
-
-- Purpose: list project meetings for frontend overview screens
-- Ordering: newest first
-
-Response `200`:
+Returns:
 
 ```json
 [
   {
     "id": 2,
     "project_id": 1,
-    "title": "Weekly Group Meeting",
-    "scheduled_at": "2026-05-03T10:00:00",
-    "raw_notes": "Student A should refine baseline. Student B should tighten evaluation.",
-    "ai_briefing": "Briefing for Meeting Project: 2 updates",
-    "briefing_status": "completed",
-    "briefing_error": null,
-    "ai_summary": "Meeting summary for Meeting Project: Student A should refine baseline. Student B should tighten evaluation.",
-    "summary_status": "completed",
-    "summary_error": null,
-    "task_split_status": "completed",
-    "task_split_error": null,
-    "created_at": "2026-05-02T12:00:00",
-    "tasks": []
+    "owner_id": 2,
+    "owner_name": "Student A",
+    "title": "Student A Line",
+    "goal": "Own retrieval direction.",
+    "line_type": "personal",
+    "parent_line_id": 1,
+    "base_node_id": 1,
+    "head_node_id": 1,
+    "status": "active",
+    "created_at": "2026-05-07T12:10:00"
   }
 ]
 ```
 
-Common errors:
+### `GET /projects/{project_id}/graph`
 
-- `404` when `project_id` does not exist
-
-### `GET /projects/{project_id}/tasks`
-
-- Purpose: list all meeting-generated tasks under one project for overview and inbox screens
-- Ordering: newest first
-
-Response `200`:
-
-```json
-[
-  {
-    "id": 1,
-    "meeting_id": 1,
-    "assignee_id": 2,
-    "assignee_name": "Student A",
-    "branch_id": 2,
-    "branch_title": "Student A Branch",
-    "description": "Task for Student A Branch: Follow up on the ablation result.",
-    "due_hint": "before next meeting",
-    "status": "todo",
-    "created_at": "2026-05-02T12:00:00"
-  }
-]
-```
-
-Common errors:
-
-- `404` when `project_id` does not exist
-
-## Branch Endpoints
-
-### `POST /branches`
-
-- Purpose: create personal branches and sub-branches
-
-Request body:
+Returns the project DAG for frontend rendering.
 
 ```json
 {
   "project_id": 1,
-  "parent_branch_ids": [1],
-  "owner_id": 2,
-  "title": "Student A Branch",
-  "goal": "Own the data pipeline direction.",
-  "branch_type": "personal"
+  "main_line_id": 1,
+  "lines": [...],
+  "nodes": [
+    {
+      "id": 1,
+      "project_id": 1,
+      "line_id": 1,
+      "line_title": "Main Line",
+      "author_id": 1,
+      "author_name": "Advisor A",
+      "title": "Project initialized",
+      "content": "Project Graph Research Project initialized.",
+      "blockers": null,
+      "next_step": null,
+      "node_kind": "initial",
+      "parent_node_ids": [],
+      "ai_summary": "Initial project node created.",
+      "ai_suggested_subbranches": [],
+      "ai_status": "completed",
+      "ai_error": null,
+      "created_at": "2026-05-07T12:00:00"
+    }
+  ],
+  "edges": []
 }
 ```
 
-Response `201`:
+## Line Endpoints
+
+### `POST /lines`
+
+Creates `personal` or `sub` lines.
+
+Request:
 
 ```json
 {
-  "id": 2,
   "project_id": 1,
-  "parent_branch_ids": [1],
   "owner_id": 2,
-  "owner_name": "Student A",
-  "title": "Student A Branch",
-  "goal": "Own the data pipeline direction.",
-  "status": "active",
-  "branch_type": "personal",
-  "created_at": "2026-05-02T12:00:00",
-  "child_branch_ids": []
+  "title": "Experiment Line",
+  "goal": "Run ablation experiments.",
+  "line_type": "sub",
+  "parent_line_id": 2
 }
 ```
 
-Business constraints currently enforced:
+Rules:
 
-- `main` branches cannot be created through this API
-- personal branches must have exactly one parent and that parent must be the project's main branch
-- personal branches must be owned by student users
-- sub-branches cannot be created directly under the main branch
-- sub-branches can have one or more parent branches
-- sub-branches must stay under parent branches owned by the same user
-- all parent branches and the target project must match
-- duplicate parent ids are rejected
+- `main` lines cannot be created through this API
+- `personal` lines must be created from the project's `main` line
+- `personal` lines must be owned by students
+- `sub` lines must be created from a line owned by the same user
+- `sub` lines cannot be created directly from the `main` line
 
-### `GET /branches/{branch_id}`
+### `GET /lines/{line_id}`
 
-- Purpose: fetch one branch with its direct parent ids and child ids
+Returns one line in the same shape used above.
 
-Response `200`: same shape as `POST /branches`
+## Node Endpoints
 
-### `GET /branches/{branch_id}/updates`
+### `POST /nodes`
 
-- Purpose: list progress updates for one branch
-- Ordering: newest first
+Creates a progress node.
 
-Response `200`:
-
-```json
-[
-  {
-    "id": 2,
-    "branch_id": 2,
-    "author_id": 2,
-    "content": "Built prototype.",
-    "blockers": "Evaluation is still noisy.",
-    "next_step": "Run controlled tests.",
-    "ai_summary": "Summary for Student A Branch: Built prototype.",
-    "ai_suggested_subbranches": [
-      "Student A Branch - experiment follow-up",
-      "Student A Branch - analysis follow-up"
-    ],
-    "ai_status": "completed",
-    "ai_error": null,
-    "created_at": "2026-05-02T12:00:00"
-  }
-]
-```
-
-Common errors:
-
-- `404` when `branch_id` does not exist
-
-## Progress Update Endpoints
-
-### `POST /updates`
-
-- Purpose: store a progress update and attempt AI enrichment
-
-Request body:
+Normal update:
 
 ```json
 {
-  "branch_id": 2,
+  "project_id": 1,
+  "line_id": 3,
   "author_id": 2,
-  "content": "Finished the first retrieval prototype.",
-  "blockers": "Need cleaner benchmark data.",
-  "next_step": "Run ablation experiments."
+  "title": "Finish baseline",
+  "content": "Completed first retrieval baseline.",
+  "blockers": "Need cleaner labels.",
+  "next_step": "Run ablation."
 }
 ```
 
-Response `201`:
+Merge update:
 
 ```json
 {
-  "id": 1,
-  "branch_id": 2,
+  "project_id": 1,
+  "line_id": 2,
   "author_id": 2,
-  "content": "Finished the first retrieval prototype.",
-  "blockers": "Need cleaner benchmark data.",
-  "next_step": "Run ablation experiments.",
-  "ai_summary": "Summary for Student A Branch: Finished the first retrieval prototype.",
+  "title": "Merge experiment and plotting",
+  "content": "Integrated both split tracks.",
+  "parent_node_ids": [4, 7, 9]
+}
+```
+
+Rules:
+
+- if `parent_node_ids` is omitted, the line's current `head_node_id` is used
+- if multiple parents are given, the new node becomes a merge node
+- merge updates must include the target line's current head node
+- after node creation, the target line's `head_node_id` is advanced to the new node
+- the node is stored even if AI enrichment fails
+
+Response shape:
+
+```json
+{
+  "id": 10,
+  "project_id": 1,
+  "line_id": 2,
+  "line_title": "Student A Line",
+  "author_id": 2,
+  "author_name": "Student A",
+  "title": "Merge experiment and plotting",
+  "content": "Integrated both split tracks.",
+  "blockers": null,
+  "next_step": null,
+  "node_kind": "merge",
+  "parent_node_ids": [4, 7, 9],
+  "ai_summary": "Summary for Student A Line: Integrated both split tracks.",
   "ai_suggested_subbranches": [
-    "Student A Branch - experiment follow-up",
-    "Student A Branch - analysis follow-up"
+    "Student A Line - experiment follow-up",
+    "Student A Line - analysis follow-up"
   ],
   "ai_status": "completed",
   "ai_error": null,
-  "created_at": "2026-05-02T12:00:00"
+  "created_at": "2026-05-07T12:20:00"
 }
 ```
 
-Behavior note:
+### `GET /nodes/{node_id}`
 
-- The update is persisted even if AI enrichment fails
-- On AI failure:
-  - `ai_status` becomes `"failed"`
-  - `ai_summary` may be `null`
-  - `ai_suggested_subbranches` may be `[]`
-  - `ai_error` records the failure text
+Returns one node in the same shape as `POST /nodes`.
 
-Common errors:
+### `GET /lines/{line_id}/nodes`
 
-- `400` when a non-owner tries to update a branch
-- `404` when `branch_id` or `author_id` does not exist
+Returns newest-first node history for one line.
 
 ## Meeting Endpoints
 
 ### `POST /meetings`
 
-- Purpose: create a meeting node under one project
+Creates one meeting node under a project.
 
-Request body:
+### `GET /meetings/{meeting_id}`
 
-```json
-{
-  "project_id": 1,
-  "title": "Weekly Group Meeting",
-  "scheduled_at": "2026-05-03T10:00:00",
-  "raw_notes": "Student A should refine baseline. Student B should tighten evaluation."
-}
-```
-
-Response `201`:
+Returns:
 
 ```json
 {
   "id": 1,
   "project_id": 1,
-  "title": "Weekly Group Meeting",
-  "scheduled_at": "2026-05-03T10:00:00",
-  "raw_notes": "Student A should refine baseline. Student B should tighten evaluation.",
+  "title": "Weekly group meeting",
+  "scheduled_at": null,
+  "raw_notes": "Student A should refine the baseline.",
   "ai_briefing": null,
   "briefing_status": "pending",
   "briefing_error": null,
@@ -388,227 +297,103 @@ Response `201`:
   "summary_error": null,
   "task_split_status": "pending",
   "task_split_error": null,
-  "created_at": "2026-05-02T12:00:00",
+  "created_at": "2026-05-07T12:30:00",
   "tasks": []
 }
 ```
-
-Common errors:
-
-- `404` when `project_id` does not exist
-
-### `GET /meetings/{meeting_id}`
-
-- Purpose: fetch one meeting node with current AI fields and created tasks
-
-Response `200`: same shape as `POST /meetings`
-
-Common errors:
-
-- `404` when `meeting_id` does not exist
 
 ### `POST /meetings/{meeting_id}/briefing`
 
-- Purpose: generate pre-meeting briefing from project context and recent updates
-
-Response `200`:
-
-```json
-{
-  "id": 1,
-  "project_id": 1,
-  "title": "Weekly Group Meeting",
-  "scheduled_at": "2026-05-03T10:00:00",
-  "raw_notes": "Student A should refine baseline. Student B should tighten evaluation.",
-  "ai_briefing": "Briefing for Meeting Project: 2 updates",
-  "briefing_status": "completed",
-  "briefing_error": null,
-  "ai_summary": null,
-  "summary_status": "pending",
-  "summary_error": null,
-  "task_split_status": "pending",
-  "task_split_error": null,
-  "created_at": "2026-05-02T12:00:00",
-  "tasks": []
-}
-```
-
-Behavior note:
-
-- If AI fails, the endpoint still returns `200`
-- Failure is represented by:
-  - `briefing_status = "failed"`
-  - `briefing_error` containing the failure reason
+Generates a pre-meeting briefing from recent project nodes.
 
 ### `POST /meetings/{meeting_id}/summarize`
 
-- Purpose: generate a post-meeting summary from raw meeting notes
-
-Response `200`:
-
-```json
-{
-  "id": 1,
-  "project_id": 1,
-  "title": "Weekly Group Meeting",
-  "scheduled_at": "2026-05-03T10:00:00",
-  "raw_notes": "Student A should refine baseline. Student B should tighten evaluation.",
-  "ai_briefing": "Briefing for Meeting Project: 2 updates",
-  "briefing_status": "completed",
-  "briefing_error": null,
-  "ai_summary": "Meeting summary for Meeting Project: Student A should refine baseline. Student B should tighten evaluation.",
-  "summary_status": "completed",
-  "summary_error": null,
-  "task_split_status": "pending",
-  "task_split_error": null,
-  "created_at": "2026-05-02T12:00:00",
-  "tasks": []
-}
-```
-
-Behavior note:
-
-- If AI fails, the endpoint still returns `200`
-- Failure is represented by:
-  - `summary_status = "failed"`
-  - `summary_error` containing the failure reason
+Generates a post-meeting summary from notes.
 
 ### `POST /meetings/{meeting_id}/split-tasks`
 
-- Purpose: extract tasks from the meeting summary or notes and return them to student branches
+Generates generic project task prompts.
 
-Response `200`:
+Behavior:
 
-```json
-{
-  "id": 1,
-  "project_id": 1,
-  "title": "Weekly Group Meeting",
-  "scheduled_at": "2026-05-03T10:00:00",
-  "raw_notes": "Student A should refine baseline. Student B should tighten evaluation.",
-  "ai_briefing": "Briefing for Meeting Project: 2 updates",
-  "briefing_status": "completed",
-  "briefing_error": null,
-  "ai_summary": "Meeting summary for Meeting Project: Student A should refine baseline. Student B should tighten evaluation.",
-  "summary_status": "completed",
-  "summary_error": null,
-  "task_split_status": "completed",
-  "task_split_error": null,
-  "created_at": "2026-05-02T12:00:00",
-  "tasks": [
-    {
-      "id": 1,
-      "meeting_id": 1,
-      "assignee_id": 2,
-      "assignee_name": "Student A",
-      "branch_id": 2,
-      "branch_title": "Student A Branch",
-      "description": "Task for Student A Branch: Meeting summary for Meeting Project: Student A should refine baseline. Student B should tighten evaluation.",
-      "due_hint": "before next meeting",
-      "status": "todo",
-      "created_at": "2026-05-02T12:00:00"
-    }
-  ]
-}
-```
-
-Behavior notes:
-
-- Tasks are only created after generated task-branch relationships pass validation
-- If AI fails, the endpoint still returns `200`
-- If generated tasks point to the wrong project branch or wrong assignee, the endpoint still returns `200`
-- In both failure cases:
-  - `task_split_status = "failed"`
-  - `task_split_error` explains the reason
-  - `tasks` remains empty
+- tasks do not belong to any line
+- tasks are generic prompts shown in side panels
+- AI failure does not block the meeting flow
 
 ## Meeting Task Endpoints
 
-### `GET /meeting-tasks/{task_id}`
+### `GET /projects/{project_id}/tasks`
 
-- Purpose: fetch one task card with human-readable display fields
-
-Response `200`:
+Returns newest-first task prompts:
 
 ```json
-{
-  "id": 1,
-  "meeting_id": 1,
-  "assignee_id": 2,
-  "assignee_name": "Student A",
-  "branch_id": 2,
-  "branch_title": "Student A Branch",
-  "description": "Task for Student A Branch: Follow up on the ablation result.",
-  "due_hint": "before next meeting",
-  "status": "todo",
-  "created_at": "2026-05-02T12:00:00"
-}
+[
+  {
+    "id": 1,
+    "meeting_id": 1,
+    "project_id": 1,
+    "assignee_id": 2,
+    "assignee_name": "Student A",
+    "description": "Task for Student A: refine the retrieval baseline.",
+    "due_hint": "before next meeting",
+    "status": "todo",
+    "created_at": "2026-05-07T12:35:00"
+  }
+]
 ```
 
-Common errors:
+### `GET /meeting-tasks/{task_id}`
 
-- `404` when `task_id` does not exist
+Returns one task in the same shape.
 
 ### `PATCH /meeting-tasks/{task_id}`
 
-- Purpose: update one task status for demo task boards
-
-Request body:
+Request:
 
 ```json
-{
-  "status": "in_progress"
-}
+{"status": "in_progress"}
 ```
 
-Response `200`: same shape as `GET /meeting-tasks/{task_id}`
+Rules:
 
-Behavior notes:
+- empty or whitespace-only status is rejected
 
-- `status` is stored as trimmed text
-- empty or whitespace-only status is rejected with `400`
-
-Common errors:
-
-- `400` when `status` is empty after trimming
-- `404` when `task_id` does not exist
-
-## QA Endpoints
+## QA Endpoint
 
 ### `POST /qa/ask`
 
-- Purpose: answer a question from project-local meeting history and progress history
-- Retrieval strategy:
-  - intentionally simple and deterministic for now
-  - searches current project meetings and updates only
-  - no vector database is used yet
-
-Request body:
+Request:
 
 ```json
 {
   "project_id": 1,
-  "question": "What should Student A finish before next week?"
+  "question": "What did Student A finish?"
 }
 ```
 
-Response `200` when history is found:
+Behavior:
+
+- searches only the current project's meetings and progress nodes
+- if enough evidence exists, returns `status = "answered"` with citations
+- otherwise returns `status = "insufficient_information"`
+
+Answered response:
 
 ```json
 {
-  "answer": "Based on project history: Student A should finish the retrieval ablation before next week.",
+  "answer": "Based on project history: Finished the first ablation round.",
   "status": "answered",
   "citations": [
     {
-      "source_type": "meeting",
-      "source_id": 1,
-      "snippet": "Student A should finish the retrieval ablation before next week."
+      "source_type": "progress_node",
+      "source_id": 8,
+      "snippet": "Finished the first ablation round."
     }
   ]
 }
 ```
 
-Response `200` when history is insufficient:
+Insufficient response:
 
 ```json
 {
@@ -617,14 +402,3 @@ Response `200` when history is insufficient:
   "citations": []
 }
 ```
-
-Behavior rules:
-
-- Answers must always come from project-local retrieved history
-- Returned answers always include citation sources when `status = "answered"`
-- If retrieval does not find enough evidence, the system returns `insufficient_information`
-- The system should not fabricate unsupported answers
-
-Common errors:
-
-- `404` when `project_id` does not exist

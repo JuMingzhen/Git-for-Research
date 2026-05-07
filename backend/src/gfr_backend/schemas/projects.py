@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from gfr_backend.schemas.branches import BranchSummary
+from gfr_backend.schemas.lines import LineResponse
 
 
 class CreateProjectRequest(BaseModel):
@@ -15,5 +15,5 @@ class ProjectResponse(BaseModel):
     description: str | None
     owner_id: int
     status: str
-    main_branch_id: int
-    branches: list[BranchSummary]
+    main_line_id: int
+    lines: list[LineResponse]

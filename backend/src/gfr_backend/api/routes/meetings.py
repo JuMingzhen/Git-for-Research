@@ -26,10 +26,9 @@ def build_meeting_task_response(task) -> MeetingTaskResponse:
     return MeetingTaskResponse(
         id=task.id,
         meeting_id=task.meeting_id,
+        project_id=task.project_id,
         assignee_id=task.assignee_id,
-        assignee_name=task.assignee.name,
-        branch_id=task.branch_id,
-        branch_title=task.branch.title,
+        assignee_name=task.assignee_name_snapshot,
         description=task.description,
         due_hint=task.due_hint,
         status=task.status,

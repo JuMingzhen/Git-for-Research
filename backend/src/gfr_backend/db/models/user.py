@@ -21,4 +21,4 @@ class User(Base):
 
     team = relationship("Team", back_populates="users")
     owned_projects = relationship("Project", back_populates="owner")
-    owned_branches = relationship("ResearchBranch", back_populates="owner")
+    owned_lines = relationship("ResearchLine", back_populates="owner")
