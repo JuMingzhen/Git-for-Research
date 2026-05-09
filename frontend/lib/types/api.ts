@@ -1,15 +1,16 @@
-export interface BranchSummary {
+export interface LineResponse {
   id: number;
   project_id: number;
-  parent_branch_ids: number[];
   owner_id: number;
   owner_name: string;
   title: string;
   goal: string | null;
+  line_type: "main" | "personal" | "sub";
+  parent_line_id: number | null;
+  base_node_id: number | null;
+  head_node_id: number | null;
   status: string;
-  branch_type: "main" | "personal" | "sub";
   created_at: string;
-  child_branch_ids?: number[];
 }
 
 export interface ProjectResponse {
@@ -18,17 +19,49 @@ export interface ProjectResponse {
   description: string | null;
   owner_id: number;
   status: string;
-  main_branch_id: number;
-  branches: BranchSummary[];
+  main_line_id: number;
+  lines: LineResponse[];
+}
+
+export interface ProgressNodeResponse {
+  id: number;
+  project_id: number;
+  line_id: number;
+  line_title: string;
+  author_id: number;
+  author_name: string;
+  title: string;
+  content: string;
+  blockers: string | null;
+  next_step: string | null;
+  node_kind: "initial" | "update" | "merge";
+  parent_node_ids: number[];
+  ai_summary: string | null;
+  ai_suggested_subbranches: string[];
+  ai_status: string;
+  ai_error: string | null;
+  created_at: string;
+}
+
+export interface NodeEdgeResponse {
+  parent_node_id: number;
+  child_node_id: number;
+}
+
+export interface ProjectGraphResponse {
+  project_id: number;
+  main_line_id: number;
+  lines: LineResponse[];
+  nodes: ProgressNodeResponse[];
+  edges: NodeEdgeResponse[];
 }
 
 export interface MeetingTaskResponse {
   id: number;
   meeting_id: number;
+  project_id: number;
   assignee_id: number;
   assignee_name: string;
-  branch_id: number;
-  branch_title: string;
   description: string;
   due_hint: string | null;
   status: string;
@@ -53,20 +86,6 @@ export interface MeetingResponse {
   tasks: MeetingTaskResponse[];
 }
 
-export interface UpdateResponse {
-  id: number;
-  branch_id: number;
-  author_id: number;
-  content: string;
-  blockers: string | null;
-  next_step: string | null;
-  ai_summary: string | null;
-  ai_suggested_subbranches: string[];
-  ai_status: string;
-  ai_error: string | null;
-  created_at: string;
-}
-
 export interface QaCitation {
   source_type: string;
   source_id: number;
@@ -84,25 +103,28 @@ export interface QaRequest {
   question: string;
 }
 
-export interface CreateUpdateRequest {
-  branch_id: number;
+export interface CreateLineRequest {
+  project_id: number;
+  owner_id: number;
+  title: string;
+  goal: string | null;
+  line_type: "personal" | "sub";
+  parent_line_id: number;
+}
+
+export interface CreateNodeRequest {
+  project_id: number;
+  line_id: number;
   author_id: number;
+  title: string;
   content: string;
   blockers: string | null;
   next_step: string | null;
+  parent_node_ids?: number[] | null;
 }
 
 export interface UpdateTaskRequest {
   status: string;
-}
-
-export interface CreateBranchRequest {
-  project_id: number;
-  parent_branch_ids: number[];
-  owner_id: number;
-  title: string;
-  goal: string | null;
-  branch_type: "personal" | "sub";
 }
 
 export interface ApiErrorEnvelope {

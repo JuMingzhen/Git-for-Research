@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { StudentWorkspace } from "@/components/student-workspace";
-import { get_branch, get_branch_updates } from "@/lib/api/branches";
-import { get_project, get_project_tasks } from "@/lib/api/projects";
+import { get_line_nodes } from "@/lib/api/nodes";
+import { get_project, get_project_graph, get_project_tasks } from "@/lib/api/projects";
 import { getPersonaConfig } from "@/lib/demo/config";
-import type { BranchSummary } from "@/lib/types/api";
 import type { DemoPersona } from "@/lib/types/demo";
 
 interface StudentProjectPageProps {
@@ -16,9 +15,7 @@ interface StudentProjectPageProps {
 
 const student_personas = new Set<DemoPersona>(["student-a", "student-b"]);
 
-export default async function StudentProjectPage({
-  params,
-}: StudentProjectPageProps) {
+export default async function StudentProjectPage({ params }: StudentProjectPageProps) {
   const { persona, projectId } = await params;
 
   if (!student_personas.has(persona as DemoPersona)) {
@@ -31,62 +28,45 @@ export default async function StudentProjectPage({
   }
 
   const config = getPersonaConfig(persona as DemoPersona);
-  const project = await get_project(project_id);
-  const matching_personal_branch =
-    project.branches.find(
-      (branch) =>
-        branch.branch_type === "personal" &&
-        (branch.id === config.branch_id || branch.owner_id === config.owner_id),
+  const [project, graph, tasks_result] = await Promise.all([
+    get_project(project_id),
+    get_project_graph(project_id),
+    get_project_tasks(project_id).catch((error: unknown) => error),
+  ]);
+
+  const personal_line =
+    graph.lines.find(
+      (line) =>
+        line.line_type === "personal" &&
+        (line.id === config.line_id || line.owner_id === config.owner_id),
     ) ??
-    project.branches.find(
-      (branch) =>
-        branch.branch_type === "personal" &&
-        branch.owner_name === (config.display_name ?? config.label),
+    graph.lines.find(
+      (line) =>
+        line.line_type === "personal" &&
+        line.owner_name === (config.display_name ?? config.label),
     );
 
-  if (!matching_personal_branch) {
+  if (!personal_line) {
     notFound();
   }
 
-  const branch = await get_branch(matching_personal_branch.id);
-  const [updates_result, tasks_result] = await Promise.allSettled([
-    get_branch_updates(branch.id),
-    get_project_tasks(project.id),
-  ]);
+  const line_nodes_result = await get_line_nodes(personal_line.id).catch((error: unknown) => error);
+  const initial_line_nodes = Array.isArray(line_nodes_result) ? line_nodes_result : [];
+  const line_nodes_error_message =
+    line_nodes_result instanceof Error ? line_nodes_result.message : undefined;
 
-  const updates = updates_result.status === "fulfilled" ? updates_result.value : [];
-  const updates_error_message =
-    updates_result.status === "rejected"
-      ? updates_result.reason instanceof Error
-        ? updates_result.reason.message
-        : "Update history could not be loaded."
-      : undefined;
-
-  const project_tasks = tasks_result.status === "fulfilled" ? tasks_result.value : [];
-  const tasks_error_message =
-    tasks_result.status === "rejected"
-      ? tasks_result.reason instanceof Error
-        ? tasks_result.reason.message
-        : "Task inbox could not be loaded."
-      : undefined;
-
-  const branch_graph = project.branches.filter(
-    (project_branch): project_branch is BranchSummary =>
-      project_branch.owner_id === branch.owner_id &&
-      (project_branch.branch_type === "personal" || project_branch.branch_type === "sub"),
-  );
-  const student_tasks = project_tasks.filter(
-    (task) => task.branch_id === branch.id || task.assignee_id === branch.owner_id,
-  );
+  const project_tasks = Array.isArray(tasks_result) ? tasks_result : [];
+  const tasks_error_message = tasks_result instanceof Error ? tasks_result.message : undefined;
+  const student_tasks = project_tasks.filter((task) => task.assignee_id === personal_line.owner_id);
 
   return (
     <StudentWorkspace
       config={config}
       project={project}
-      branch={branch}
-      branch_graph={branch_graph}
-      initial_updates={updates}
-      updates_error_message={updates_error_message}
+      graph={graph}
+      personal_line={personal_line}
+      initial_line_nodes={initial_line_nodes}
+      line_nodes_error_message={line_nodes_error_message}
       initial_tasks={student_tasks}
       tasks_error_message={tasks_error_message}
     />

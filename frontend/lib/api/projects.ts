@@ -1,7 +1,9 @@
 import { apiFetch } from "@/lib/api/client";
 import type {
+  LineResponse,
   MeetingResponse,
   MeetingTaskResponse,
+  ProjectGraphResponse,
   ProjectResponse,
   QaRequest,
   QaResponse,
@@ -9,6 +11,14 @@ import type {
 
 export function get_project(project_id: number) {
   return apiFetch<ProjectResponse>(`/projects/${project_id}`);
+}
+
+export function get_project_lines(project_id: number) {
+  return apiFetch<LineResponse[]>(`/projects/${project_id}/lines`);
+}
+
+export function get_project_graph(project_id: number) {
+  return apiFetch<ProjectGraphResponse>(`/projects/${project_id}/graph`);
 }
 
 export function get_project_meetings(project_id: number) {

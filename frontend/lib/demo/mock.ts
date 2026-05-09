@@ -1,17 +1,17 @@
 export const demoHighlights = [
   {
-    title: "Research DAGs, not flat task lists",
+    title: "Node graph first",
     description:
-      "The demo foregrounds branch lineage, split work, and merge milestones so progress feels structured instead of buried in notes.",
+      "Progress is shown as nodes and merges, not as a flat log of notes.",
   },
   {
-    title: "Meeting closure becomes visible",
+    title: "Meeting output stays visible",
     description:
-      "Briefing, summary, task reflux, and history QA appear as connected panels rather than isolated screens.",
+      "Briefing, summary, task prompts, and history QA stay in one loop.",
   },
   {
-    title: "Roles stay distinct without login complexity",
+    title: "Advisor and student stay distinct",
     description:
-      "Advisor and student entry points share one product language while still showing different priorities.",
+      "The same data model supports two different workspaces without adding login complexity.",
   },
 ];

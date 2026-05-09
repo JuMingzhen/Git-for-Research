@@ -12,7 +12,7 @@ export default function DemoPage() {
       personaTheme="advisor"
       eyebrow="Git for Research"
       title="Choose a workspace"
-      description="Open the advisor view or a student branch workspace."
+      description="Open the advisor view or a student workspace."
       badgeLabel="Demo Entry"
       footer={<WorkspaceNav />}
     >
@@ -31,7 +31,7 @@ export default function DemoPage() {
         <SectionCard
           title="Why it matters"
           eyebrow="Value"
-          description="The demo shows branch structure, meeting closure, and traceable history."
+          description="The demo shows node structure, meeting closure, and traceable history."
         >
           <div className="space-y-4">
             {demoHighlights.map((item, index) => (
@@ -57,8 +57,8 @@ export default function DemoPage() {
       >
         <div className="grid gap-4 lg:grid-cols-3">
           {[
-            "1. Open Advisor and scan the project graph, meetings, and tasks.",
-            "2. Open Student A and show the current branch, updates, and task inbox.",
+            "1. Open Advisor and scan the project graph, meetings, and task prompts.",
+            "2. Open Student A and show the current line, nodes, and task inbox.",
             "3. Return to Advisor and ask a history question with citations.",
           ].map((item, index) => (
             <article

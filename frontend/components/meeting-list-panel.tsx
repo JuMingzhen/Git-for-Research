@@ -31,7 +31,7 @@ export function MeetingListPanel({
     <SectionCard
       title="Recent Meeting Cycle"
       eyebrow="Before & After"
-      description="A compact view of where the meeting pipeline stands: briefing, summary, and whether tasks made it back into student branches."
+      description="A compact view of where the meeting pipeline stands: briefing, summary, and whether task prompts were extracted."
     >
       {error_message ? (
         <ErrorState
@@ -106,7 +106,7 @@ export function MeetingListPanel({
                   meeting.task_split_status === "failed" ? (
                     <div className="mt-4 ai-warning-note">
                       {meeting.task_split_status === "failed"
-                        ? "Task split failed, so meeting decisions may not yet have returned to student inboxes."
+                        ? "Task extraction failed, so the student side may still be missing fresh meeting prompts."
                         : "Summary generation failed, but raw meeting data remains available through backend history."}
                     </div>
                   ) : null}

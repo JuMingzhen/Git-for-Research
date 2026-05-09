@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     app_name: str = "Git for Research Backend"
     debug: bool = False
     database_url: str = "sqlite:///./gfr.db"
+    cors_allow_origins: list[str] = [
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+    ]
 
     model_config = SettingsConfigDict(
         env_prefix="GFR_",

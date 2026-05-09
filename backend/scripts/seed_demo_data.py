@@ -5,20 +5,28 @@ from datetime import datetime
 from sqlalchemy import select
 
 from gfr_backend.db.base import Base
-from gfr_backend.db.models.branch import BranchType, ResearchBranch
-from gfr_backend.db.models.meeting import Meeting
-from gfr_backend.db.models.meeting_task import MeetingTask
-from gfr_backend.db.models.project import Project
 from gfr_backend.db.models.team import Team
-from gfr_backend.db.models.update import ProgressUpdate
 from gfr_backend.db.models.user import User, UserRole
 from gfr_backend.db.session import SessionLocal, engine
+from gfr_backend.services.lines import create_line
+from gfr_backend.services.llm import StubLLMService
+from gfr_backend.services.meetings import (
+    build_meeting_briefing,
+    create_meeting,
+    get_meeting_or_404,
+    split_meeting_tasks,
+    summarize_meeting_notes,
+)
+from gfr_backend.services.nodes import create_progress_node
+from gfr_backend.services.projects import create_project
 
 
 def main() -> None:
     Base.metadata.create_all(bind=engine)
 
     session = SessionLocal()
+    llm_service = StubLLMService()
+
     try:
         existing_user = session.scalar(select(User.id).limit(1))
         if existing_user is not None:
@@ -35,161 +43,158 @@ def main() -> None:
         student_a = User(name="Student A", role=UserRole.student, team_id=team.id)
         student_b = User(name="Student B", role=UserRole.student, team_id=team.id)
         session.add_all([advisor, student_a, student_b])
-        session.flush()
+        session.commit()
 
-        project = Project(
+        project = create_project(
+            session,
             title="Retrieval-Augmented Research Assistant",
-            description="Demo project for the Git for Research MVP walkthrough.",
+            description="Demo project for the Git for Research line and node walkthrough.",
             owner_id=advisor.id,
-            status="active",
         )
-        session.add(project)
-        session.flush()
 
-        main_branch = ResearchBranch(
-            project_id=project.id,
-            owner_id=advisor.id,
-            title="Main Branch",
-            goal="Shared research spine for retrieval-augmented assistant work.",
-            status="active",
-            branch_type=BranchType.main,
-        )
-        session.add(main_branch)
-        session.flush()
-        project.main_branch_id = main_branch.id
-        session.flush()
-
-        student_a_branch = ResearchBranch(
+        student_a_line = create_line(
+            session,
             project_id=project.id,
             owner_id=student_a.id,
-            title="Student A Branch",
-            goal="Own retrieval experiments and ablations.",
-            status="active",
-            branch_type=BranchType.personal,
-            parent_branches=[main_branch],
+            title="Student A Main Line",
+            goal="Own retrieval experiments and milestone merges.",
+            line_type="personal",
+            parent_line_id=project.main_line_id,
         )
-        student_b_branch = ResearchBranch(
+        student_b_line = create_line(
+            session,
             project_id=project.id,
             owner_id=student_b.id,
-            title="Student B Branch",
-            goal="Own evaluation workflow and dataset cleanup.",
-            status="active",
-            branch_type=BranchType.personal,
-            parent_branches=[main_branch],
+            title="Student B Main Line",
+            goal="Own evaluation cleanup and benchmark review.",
+            line_type="personal",
+            parent_line_id=project.main_line_id,
         )
-        session.add_all([student_a_branch, student_b_branch])
-        session.flush()
 
-        student_a_experiment = ResearchBranch(
+        experiment_line = create_line(
+            session,
             project_id=project.id,
             owner_id=student_a.id,
-            title="Student A Ablation Track",
-            goal="Test retrieval variants against the current baseline.",
-            status="active",
-            branch_type=BranchType.sub,
-            parent_branches=[student_a_branch],
+            title="Experiment Line",
+            goal="Run retrieval ablations against the baseline.",
+            line_type="sub",
+            parent_line_id=student_a_line.id,
         )
-        student_a_plotting = ResearchBranch(
+        plotting_line = create_line(
+            session,
             project_id=project.id,
             owner_id=student_a.id,
-            title="Student A Figure Track",
-            goal="Prepare comparison plots for the retrieval study.",
-            status="active",
-            branch_type=BranchType.sub,
-            parent_branches=[student_a_branch],
+            title="Plotting Line",
+            goal="Prepare comparison figures for the current study.",
+            line_type="sub",
+            parent_line_id=student_a_line.id,
         )
-        session.add_all([student_a_experiment, student_a_plotting])
-        session.flush()
-
-        student_a_merge = ResearchBranch(
-            project_id=project.id,
-            owner_id=student_a.id,
-            title="Student A Milestone Merge",
-            goal="Record the merged milestone after experiment and figure work reconverge.",
-            status="active",
-            branch_type=BranchType.sub,
-            parent_branches=[student_a_branch, student_a_experiment, student_a_plotting],
-        )
-        student_b_cleanup = ResearchBranch(
+        cleanup_line = create_line(
+            session,
             project_id=project.id,
             owner_id=student_b.id,
-            title="Student B Benchmark Cleanup",
-            goal="Resolve noisy labels and tighten the evaluation sheet.",
-            status="active",
-            branch_type=BranchType.sub,
-            parent_branches=[student_b_branch],
+            title="Benchmark Cleanup Line",
+            goal="Resolve noisy labels before the next group meeting.",
+            line_type="sub",
+            parent_line_id=student_b_line.id,
         )
-        session.add_all([student_a_merge, student_b_cleanup])
-        session.flush()
 
-        update_a = ProgressUpdate(
-            branch_id=student_a_branch.id,
+        student_a_head = create_progress_node(
+            session,
+            llm_service,
+            project_id=project.id,
+            line_id=student_a_line.id,
             author_id=student_a.id,
-            content="Finished the first retrieval prototype and prepared ablation notes.",
+            title="Baseline ready",
+            content="Finished the first retrieval baseline and wrote down the milestone summary.",
             blockers="Need cleaner benchmark slices for the final comparison.",
-            next_step="Run retrieval ablations and compare against the baseline.",
-            ai_summary="Summary for Student A Branch: Finished the first retrieval prototype and prepared ablation notes.",
-            ai_suggested_subbranches=[
-                "Student A Branch - experiment follow-up",
-                "Student A Branch - analysis follow-up",
-            ],
-            ai_status="completed",
+            next_step="Split experiments from figure preparation.",
         )
-        update_b = ProgressUpdate(
-            branch_id=student_b_branch.id,
+        experiment_head = create_progress_node(
+            session,
+            llm_service,
+            project_id=project.id,
+            line_id=experiment_line.id,
+            author_id=student_a.id,
+            title="Ablation batch completed",
+            content="Completed the first ablation batch and compared top-k retrieval variants.",
+            blockers="Still need to double-check the hardest benchmark subset.",
+            next_step="Merge conclusions back into the main line.",
+        )
+        plotting_head = create_progress_node(
+            session,
+            llm_service,
+            project_id=project.id,
+            line_id=plotting_line.id,
+            author_id=student_a.id,
+            title="Comparison figures drafted",
+            content="Prepared the comparison plots for the baseline and ablation runs.",
+            blockers=None,
+            next_step="Merge figures into the milestone note.",
+        )
+        create_progress_node(
+            session,
+            llm_service,
+            project_id=project.id,
+            line_id=student_b_line.id,
             author_id=student_b.id,
-            content="Cleaned the evaluation sheet and reviewed noisy samples.",
+            title="Evaluation sheet cleaned",
+            content="Cleaned the evaluation sheet and removed duplicate benchmark rows.",
             blockers="Some labels still need manual review.",
-            next_step="Tighten the benchmark set before the next meeting.",
-            ai_summary="Summary for Student B Branch: Cleaned the evaluation sheet and reviewed noisy samples.",
-            ai_suggested_subbranches=[],
-            ai_status="failed",
-            ai_error="Fake demo failure: evaluation summary timed out.",
+            next_step="Finish the noisy-label pass.",
         )
-        session.add_all([update_a, update_b])
-        session.flush()
+        create_progress_node(
+            session,
+            llm_service,
+            project_id=project.id,
+            line_id=cleanup_line.id,
+            author_id=student_b.id,
+            title="Noisy labels reviewed",
+            content="Reviewed the remaining noisy labels and documented the unresolved samples.",
+            blockers="Need advisor confirmation for two ambiguous examples.",
+            next_step="Update the benchmark protocol note.",
+        )
 
-        meeting = Meeting(
+        create_progress_node(
+            session,
+            llm_service,
+            project_id=project.id,
+            line_id=student_a_line.id,
+            author_id=student_a.id,
+            title="Merge experiment and figures",
+            content=(
+                "Merged the experiment conclusions and comparison figures into "
+                "one milestone update."
+            ),
+            blockers=None,
+            next_step="Prepare the meeting walkthrough and remaining benchmark checks.",
+            parent_node_ids=[student_a_head.id, experiment_head.id, plotting_head.id],
+        )
+
+        meeting = create_meeting(
+            session,
             project_id=project.id,
             title="Weekly Research Meeting",
-            scheduled_at=datetime.fromisoformat("2026-05-03T10:00:00"),
+            scheduled_at=datetime.fromisoformat("2026-05-07T10:00:00"),
             raw_notes=(
-                "Student A should finish the retrieval ablation before next week. "
-                "Student B should tighten the evaluation protocol and resolve the noisy labels."
+                "Student A should polish the merged milestone note and verify the hardest "
+                "benchmark subset. Student B should finish the noisy-label decision list "
+                "and tighten the benchmark protocol before next week."
             ),
-            ai_briefing=(
-                "Briefing for Retrieval-Augmented Research Assistant: "
-                "Student A is blocked by benchmark slices; Student B is blocked by noisy labels."
-            ),
-            briefing_status="completed",
-            ai_summary=(
-                "Meeting summary: Student A will finish retrieval ablations and merge the figure work. "
-                "Student B will tighten the benchmark protocol before the next check-in."
-            ),
-            summary_status="completed",
-            task_split_status="completed",
         )
-        session.add(meeting)
-        session.flush()
+        build_meeting_briefing(session, llm_service, meeting_id=meeting.id)
+        summarize_meeting_notes(session, llm_service, meeting_id=meeting.id)
+        split_meeting_tasks(session, llm_service, meeting_id=meeting.id)
 
-        task_a = MeetingTask(
-            meeting_id=meeting.id,
-            assignee_id=student_a.id,
-            branch_id=student_a_branch.id,
-            description="Finish the retrieval ablation and merge the experiment and figure tracks.",
-            due_hint="before next meeting",
-            status="in_progress",
+        meeting = get_meeting_or_404(session, meeting.id)
+        first_task = next(
+            (task for task in meeting.tasks if task.assignee_id == student_a.id),
+            None,
         )
-        task_b = MeetingTask(
-            meeting_id=meeting.id,
-            assignee_id=student_b.id,
-            branch_id=student_b_branch.id,
-            description="Tighten the evaluation protocol and resolve the remaining noisy labels.",
-            due_hint="before next meeting",
-            status="todo",
-        )
-        session.add_all([task_a, task_b])
-        session.commit()
+        if first_task is not None:
+            first_task.status = "in_progress"
+            session.commit()
+
     except Exception:
         session.rollback()
         raise
@@ -202,10 +207,13 @@ def main() -> None:
     print("  student_a_id=2")
     print("  student_b_id=3")
     print("  project_id=1")
-    print("  main_branch_id=1")
-    print("  student_a_branch_id=2")
-    print("  student_b_branch_id=3")
-    print("  student_a_sub_branch_id=4")
+    print("  main_line_id=1")
+    print("  student_a_line_id=2")
+    print("  student_b_line_id=3")
+    print("  experiment_line_id=4")
+    print("  plotting_line_id=5")
+    print("  cleanup_line_id=6")
+    print("  meeting_task_count>=2")
 
 
 if __name__ == "__main__":

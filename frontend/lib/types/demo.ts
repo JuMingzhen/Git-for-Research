@@ -8,7 +8,7 @@ export interface DemoPersonaConfig {
   theme: PersonaTheme;
   project_id: number;
   owner_id?: number;
-  branch_id?: number;
+  line_id?: number;
   display_name?: string;
   href: string;
   summary: string;

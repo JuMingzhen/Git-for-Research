@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -39,33 +39,33 @@ export function TaskInbox({
 }: TaskInboxProps) {
   const [pending_task_id, setPendingTaskId] = useState<number | null>(null);
   const [inline_error, setInlineError] = useState<string | null>(null);
-  const [is_pending, startTransition] = useTransition();
+  const [is_pending, setIsPending] = useState(false);
 
-  function handle_status_change(task_id: number, next_status: string) {
+  async function handle_status_change(task_id: number, next_status: string) {
     setInlineError(null);
     setPendingTaskId(task_id);
+    setIsPending(true);
 
-    startTransition(async () => {
-      try {
-        const updated = await update_meeting_task(task_id, { status: next_status });
-        on_task_updated(updated);
-      } catch (error) {
-        if (error instanceof ApiError) {
-          setInlineError(error.message);
-        } else {
-          setInlineError("Task status could not be updated right now.");
-        }
-      } finally {
-        setPendingTaskId(null);
+    try {
+      const updated = await update_meeting_task(task_id, { status: next_status });
+      on_task_updated(updated);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setInlineError(error.message);
+      } else {
+        setInlineError("Task status could not be updated right now.");
       }
-    });
+    } finally {
+      setPendingTaskId(null);
+      setIsPending(false);
+    }
   }
 
   return (
     <SectionCard
       title="Task Inbox"
       eyebrow="Tasks"
-      description="Tasks for this branch and student."
+      description="Meeting tasks for this student."
       action={<StatusBadge label={`${tasks.length} tasks`} tone="student" />}
     >
       {error_message ? (
@@ -102,7 +102,7 @@ export function TaskInbox({
                       {task.description}
                     </p>
                     <p className="text-sm leading-6 muted-copy">
-                      {task.branch_title} / meeting #{task.meeting_id} / {format_short_date(task.created_at)}
+                      {task.assignee_name} / meeting #{task.meeting_id} / {format_short_date(task.created_at)}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">

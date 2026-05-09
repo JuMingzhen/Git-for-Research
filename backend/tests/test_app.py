@@ -24,3 +24,17 @@ def test_test_database_session_is_usable(raw_session) -> None:
     value = raw_session.execute(text("SELECT 1")).scalar_one()
 
     assert value == 1
+
+
+def test_cors_preflight_allows_frontend_origin(client) -> None:
+    response = client.options(
+        "/nodes",
+        headers={
+            "Origin": "http://127.0.0.1:3000",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:3000"
+    assert "POST" in response.headers["access-control-allow-methods"]

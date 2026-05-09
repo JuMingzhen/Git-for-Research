@@ -27,5 +27,5 @@ export function truncate_text(value: string, max_length: number) {
     return value;
   }
 
-  return `${value.slice(0, max_length - 1).trimEnd()}…`;
+  return `${value.slice(0, max_length - 1).trimEnd()}...`;
 }

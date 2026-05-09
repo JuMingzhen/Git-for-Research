@@ -10,6 +10,7 @@ import { TaskRefluxPanel } from "@/components/task-reflux-panel";
 import { WorkspaceNav } from "@/components/workspace-nav";
 import {
   get_project,
+  get_project_graph,
   get_project_meetings,
   get_project_tasks,
 } from "@/lib/api/projects";
@@ -20,63 +21,47 @@ interface AdvisorProjectPageProps {
   }>;
 }
 
-export default async function AdvisorProjectPage({
-  params,
-}: AdvisorProjectPageProps) {
+export default async function AdvisorProjectPage({ params }: AdvisorProjectPageProps) {
   const { projectId } = await params;
   const project_id = Number(projectId);
   if (Number.isNaN(project_id)) {
     notFound();
   }
 
-  const project = await get_project(project_id);
-  const [meetings_result, tasks_result] = await Promise.allSettled([
-    get_project_meetings(project_id),
-    get_project_tasks(project_id),
+  const [project, graph, meetings_result, tasks_result] = await Promise.all([
+    get_project(project_id),
+    get_project_graph(project_id),
+    get_project_meetings(project_id).catch((error: unknown) => error),
+    get_project_tasks(project_id).catch((error: unknown) => error),
   ]);
-  const meetings =
-    meetings_result.status === "fulfilled" ? meetings_result.value : [];
-  const tasks = tasks_result.status === "fulfilled" ? tasks_result.value : [];
-  const meetings_error_message =
-    meetings_result.status === "rejected"
-      ? meetings_result.reason instanceof Error
-        ? meetings_result.reason.message
-        : "Meeting data could not be loaded."
-      : undefined;
-  const tasks_error_message =
-    tasks_result.status === "rejected"
-      ? tasks_result.reason instanceof Error
-        ? tasks_result.reason.message
-        : "Task data could not be loaded."
-      : undefined;
+
+  const meetings = Array.isArray(meetings_result) ? meetings_result : [];
+  const tasks = Array.isArray(tasks_result) ? tasks_result : [];
+  const meetings_error_message = meetings_result instanceof Error ? meetings_result.message : undefined;
+  const tasks_error_message = tasks_result instanceof Error ? tasks_result.message : undefined;
 
   return (
     <AppShell
       personaTheme="advisor"
       eyebrow={`Advisor Workspace / Project ${projectId}`}
       title="Advisor workspace"
-      description="Scan the project graph, meetings, tasks, and history."
+      description="Scan the project graph, meetings, task prompts, and history."
       badgeLabel="Advisor"
       footer={<WorkspaceNav current_persona="advisor" />}
     >
-      <ProjectHero project={project} />
+      <ProjectHero project={project} lines={graph.lines} nodes={graph.nodes} />
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
-        <BranchDagBoard branches={project.branches} />
+        <BranchDagBoard lines={graph.lines} nodes={graph.nodes} />
         <StudentStatusPanel
-          branches={project.branches}
+          lines={graph.lines}
+          nodes={graph.nodes}
           tasks={tasks}
           tasks_error_message={tasks_error_message}
         />
       </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <MeetingListPanel
-          meetings={meetings}
-          error_message={meetings_error_message}
-        />
-        <TaskRefluxPanel
-          tasks={tasks}
-          error_message={tasks_error_message}
-        />
+        <MeetingListPanel meetings={meetings} error_message={meetings_error_message} />
+        <TaskRefluxPanel tasks={tasks} error_message={tasks_error_message} />
       </div>
       <QaPanel project_id={project.id} />
     </AppShell>

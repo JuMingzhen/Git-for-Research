@@ -7,9 +7,8 @@ Create Date: 2026-05-07
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = "20260507_01"
 down_revision: str | None = None
@@ -52,11 +51,21 @@ def upgrade() -> None:
         sa.Column("title", sa.String(length=255), nullable=False),
         sa.Column("goal", sa.Text(), nullable=True),
         sa.Column("line_type", line_type_enum, nullable=False),
-        sa.Column("parent_line_id", sa.Integer(), sa.ForeignKey("research_lines.id"), nullable=True),
+        sa.Column(
+            "parent_line_id",
+            sa.Integer(),
+            sa.ForeignKey("research_lines.id"),
+            nullable=True,
+        ),
         sa.Column("base_node_id", sa.Integer(), nullable=True),
         sa.Column("head_node_id", sa.Integer(), nullable=True),
         sa.Column("status", sa.String(length=50), nullable=False, server_default="active"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_table(
         "progress_nodes",
@@ -73,12 +82,22 @@ def upgrade() -> None:
         sa.Column("ai_suggested_subbranches", sa.JSON(), nullable=False, server_default="[]"),
         sa.Column("ai_status", sa.String(length=50), nullable=False, server_default="pending"),
         sa.Column("ai_error", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_table(
         "progress_node_parents",
         sa.Column("node_id", sa.Integer(), sa.ForeignKey("progress_nodes.id"), primary_key=True),
-        sa.Column("parent_node_id", sa.Integer(), sa.ForeignKey("progress_nodes.id"), primary_key=True),
+        sa.Column(
+            "parent_node_id",
+            sa.Integer(),
+            sa.ForeignKey("progress_nodes.id"),
+            primary_key=True,
+        ),
     )
     op.create_table(
         "meetings",
@@ -88,14 +107,29 @@ def upgrade() -> None:
         sa.Column("scheduled_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("raw_notes", sa.Text(), nullable=True),
         sa.Column("ai_briefing", sa.Text(), nullable=True),
-        sa.Column("briefing_status", sa.String(length=50), nullable=False, server_default="pending"),
+        sa.Column(
+            "briefing_status",
+            sa.String(length=50),
+            nullable=False,
+            server_default="pending",
+        ),
         sa.Column("briefing_error", sa.Text(), nullable=True),
         sa.Column("ai_summary", sa.Text(), nullable=True),
         sa.Column("summary_status", sa.String(length=50), nullable=False, server_default="pending"),
         sa.Column("summary_error", sa.Text(), nullable=True),
-        sa.Column("task_split_status", sa.String(length=50), nullable=False, server_default="pending"),
+        sa.Column(
+            "task_split_status",
+            sa.String(length=50),
+            nullable=False,
+            server_default="pending",
+        ),
         sa.Column("task_split_error", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_table(
         "meeting_tasks",
@@ -107,8 +141,14 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("due_hint", sa.String(length=255), nullable=True),
         sa.Column("status", sa.String(length=50), nullable=False, server_default="todo"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
+
 
 def downgrade() -> None:
     op.drop_table("meeting_tasks")
